@@ -278,6 +278,33 @@ def expected_table_example_function_9() -> Table:
     return Table([row_lst, row_lst_item])
 
 
+@require(lambda lst: all(all(item > 0 for item in sub_lst) for sub_lst in lst))
+def example_function_10(lst: List[List[int]]):
+    pass
+
+
+def expected_table_example_function_10() -> Table:
+    row_lst = Row(var_id='lst',
+                  kind=Kind.BASE,
+                  type=List[List[int]],
+                  function='example_function_10',
+                  parent=None,
+                  properties={})
+    row_sub_lst = Row(var_id='sub_lst',
+                      kind=Kind.UNIVERSAL_QUANTIFIER,
+                      type=List[int],
+                      function='example_function_10',
+                      parent='lst',
+                      properties={})
+    row_item = Row(var_id='item',
+                   kind=Kind.UNIVERSAL_QUANTIFIER,
+                   type=int,
+                   function='example_function_10',
+                   parent='sub_lst',
+                   properties={'>': ({'0'}, set())})
+    return Table([row_lst, row_sub_lst, row_item])
+
+
 class GenerateSymbolTableTest(unittest.TestCase):
 
     def test_example_function_1(self) -> None:
@@ -319,3 +346,7 @@ class GenerateSymbolTableTest(unittest.TestCase):
     def test_example_function_9(self) -> None:
         self.assertEqual(generate_pretty_table(generate_symbol_table(example_function_9)),
                          generate_pretty_table(expected_table_example_function_9()))
+
+    def test_example_function_10(self) -> None:
+        self.assertEqual(generate_pretty_table(generate_symbol_table(example_function_10)),
+                         generate_pretty_table(expected_table_example_function_10()))

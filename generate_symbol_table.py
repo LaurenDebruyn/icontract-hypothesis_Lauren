@@ -380,7 +380,8 @@ List[Row]:
     compare = generator_expr.elt
     rows = parse_expression(compare, condition, function_args_hints)
     for row in rows:
-        row.kind = Kind.LINK
+        if not row.kind in [Kind.UNIVERSAL_QUANTIFIER, Kind.EXISTENTIAL_QUANTIFIER]:
+            row.kind = Kind.LINK
         row.parent = quantifier_row.var_id
 
     rows.insert(0, quantifier_row)

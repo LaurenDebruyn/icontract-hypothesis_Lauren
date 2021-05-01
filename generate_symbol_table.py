@@ -184,8 +184,11 @@ def visualize_comparators(comp: ast.expr) -> str:
         return str(comp)
 
 
-def parse_comparison(expr: ast.Compare, condition: Callable[..., Any], function_args_hints: Dict[str, Any]) -> List[
-    Row]:
+def parse_comparison(
+        expr: ast.Compare,
+        condition: Callable[..., Any],
+        function_args_hints: Dict[str, Any]
+) -> List[Row]:
     rows: List[Row] = []
     left = expr.left
     ops = expr.ops
@@ -201,7 +204,7 @@ def parse_comparison(expr: ast.Compare, condition: Callable[..., Any], function_
                     and right.func.id == 'set':
                 row = Row(astunparse.unparse(left),
                           Kind.BASE,
-                          int,
+                          int,  # TODO use type hints
                           'dummy_function',
                           None,
                           {'is_unique': (set(), set())})
@@ -224,6 +227,7 @@ def parse_comparison(expr: ast.Compare, condition: Callable[..., Any], function_
             elif isinstance(left, ast.Call):
                 assert isinstance(func, ast.Name)
                 var_id = func.id
+                assert var_id == 'len'
                 nb_parentheses = 1
                 while isinstance(argument, ast.Call):
                     nb_parentheses += 1
@@ -236,6 +240,39 @@ def parse_comparison(expr: ast.Compare, condition: Callable[..., Any], function_
                 add_to_rows = True
             else:
                 raise NotImplementedError
+            function_args_hints[var_id] = int
+        elif isinstance(left, ast.Subscript):
+            value = left.value
+            if isinstance(value, ast.Name):
+                var_id_base = value.id
+            else:
+                raise NotImplementedError(f'Value is expected to be ast.Name and not {value}')
+            idx = left.slice
+            if isinstance(idx, ast.Index):
+                assert isinstance(idx.value, ast.Num)
+                var_id = f'{var_id_base}[{idx.value.n}]'
+                type_hint = typing.get_args(function_args_hints[var_id_base])[int(idx.value.n.real)]
+                function_args_hints[var_id] = type_hint
+            else:
+                raise NotImplementedError(f'Slice is expected to be ast.Index and not {slice}.'
+                                          f'Slices are currently not supported.')
+            add_to_rows = True
+            row_kind = Kind.LINK
+            parent = var_id_base
+        elif isinstance(left, ast.Tuple):
+            assert all(isinstance(el, ast.Name) for el in left.elts)
+            left_hand = list(map(lambda el: el.id, left.elts))
+            comps = comparators[0]
+            assert isinstance(comps, ast.Tuple)
+            right_hand = list(map(lambda el: visualize_comparators(el), comps.elts))
+            assert len(left_hand) == len(right_hand)
+            for (l, r) in zip(left_hand, right_hand):
+                new_expr_ast = ast.parse(f'{l} {visualize_operation(op)} {r}', mode="eval")
+                assert isinstance(new_expr_ast, ast.Expression)
+                rows.extend(parse_expression(new_expr_ast.body, condition, function_args_hints))
+            var_id = None
+            row_kind = None
+            add_to_rows = False
         else:
             var_id = None
             row_kind = None
@@ -244,8 +281,8 @@ def parse_comparison(expr: ast.Compare, condition: Callable[..., Any], function_
         if add_to_rows:
             row = Row(var_id,
                       row_kind,
-                      # TODO not correct, this should be passed on, or I should get this information from elsewhere
-                      int,
+                      # TODO use type hints
+                      function_args_hints[var_id],  # int,
                       'dummy_function',
                       parent if parent else None,
                       {visualize_operation(op): ({visualize_comparators(comparators[0])},

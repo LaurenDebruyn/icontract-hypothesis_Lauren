@@ -2,7 +2,7 @@ import dataclasses
 import enum
 
 from icontract import require
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 import unittest
 import regex as re
 
@@ -209,6 +209,54 @@ def expected_table_example_function_6() -> Table:
     return Table([row_batch, row_line])
 
 
+@require(lambda t: t[0] > 0 and t[1] < 0)
+def example_function_7(t: Tuple[int, int]):
+    pass
+
+
+def expected_table_example_function_7() -> Table:
+    row_t = Row(var_id='t',
+                kind=Kind.BASE,
+                type=Tuple[int, int],
+                function='example_function_7',
+                parent=None,
+                properties={})
+    row_t_0 = Row(var_id='t[0]',
+                  kind=Kind.LINK,
+                  type=int,
+                  function='example_function_7',
+                  parent='t',
+                  properties={'>': ({'0'}, set())})
+    row_t_1 = Row(var_id='t[1]',
+                  kind=Kind.LINK,
+                  type=int,
+                  function='example_function_7',
+                  parent='t',
+                  properties={'<': ({'0'}, set())})
+    return Table([row_t, row_t_0, row_t_1])
+
+
+@require(lambda n1, n2: (n1, n2) > (0, 0))
+def example_function_8(n1: int, n2: int):
+    pass
+
+
+def expected_table_example_function_8() -> Table:
+    row_n1 = Row(var_id='n1',
+                 kind=Kind.BASE,
+                 type=int,
+                 function='example_function_8',
+                 parent=None,
+                 properties={'>': ({'0'}, set())})
+    row_n2 = Row(var_id='n2',
+                 kind=Kind.BASE,
+                 type=int,
+                 function='example_function_8',
+                 parent=None,
+                 properties={'>': ({'0'}, set())})
+    return Table([row_n1, row_n2])
+
+
 class GenerateSymbolTableTest(unittest.TestCase):
 
     def test_example_function_1(self) -> None:
@@ -238,3 +286,11 @@ class GenerateSymbolTableTest(unittest.TestCase):
     def test_example_function_6(self) -> None:
         self.assertEqual(generate_pretty_table(generate_symbol_table(example_function_6)),
                          generate_pretty_table(expected_table_example_function_6()))
+
+    def test_example_function_7(self) -> None:
+        self.assertEqual(generate_pretty_table(generate_symbol_table(example_function_7)),
+                         generate_pretty_table(expected_table_example_function_7()))
+
+    def test_example_function_8(self) -> None:
+        self.assertEqual(generate_pretty_table(generate_symbol_table(example_function_8)),
+                         generate_pretty_table(expected_table_example_function_8()))

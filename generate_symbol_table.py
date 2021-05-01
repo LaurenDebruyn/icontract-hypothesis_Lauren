@@ -20,6 +20,7 @@ class Kind(Enum):
     UNIVERSAL_QUANTIFIER = 2
     DISJUNCTION = 3  # TODO remove?
     LINK = 4
+    EXISTENTIAL_QUANTIFIER = 5
 
 
 @dataclass
@@ -96,22 +97,6 @@ class Table:
 def extract_variables_from_expression(root: ast.expr, function_args_hints: Dict[str, Any]) -> Set[str]:
     free_symbols = set(sorted({node.id for node in ast.walk(root) if isinstance(node, ast.Name)}))
     free_symbols = free_symbols.intersection(function_args_hints.keys())
-    # parent_node: Dict[Any, Any] = dict()
-    # for node in ast.walk(root):
-    #     for child in ast.iter_child_nodes(node):
-    #         parent_node[child] = node
-    #
-    # free_symbols = set()
-    # for node in ast.walk(root):
-    #     if isinstance(node, ast.Name):
-    #         if node not in parent_node or not isinstance(parent_node[node], ast.Attribute):
-    #             free_symbols.add(node.id)
-
-    # variables_with_functions = set(sorted({node.id for node in ast.walk(root) if isinstance(node, ast.Name)}))
-    # if isinstance(root, ast.Constant):
-    #     return set()
-    # free_symbols = set(map(str, S(astunparse.unparse(root)).free_symbols))
-    # return free_symbols.intersection(variables_with_functions)
     return free_symbols
 
 
@@ -281,8 +266,7 @@ def parse_comparison(
         if add_to_rows:
             row = Row(var_id,
                       row_kind,
-                      # TODO use type hints
-                      function_args_hints[var_id],  # int,
+                      function_args_hints[var_id],
                       'dummy_function',
                       parent if parent else None,
                       {visualize_operation(op): ({visualize_comparators(comparators[0])},
@@ -327,8 +311,8 @@ def parse_attribute(expr: ast.Call, condition: Callable[..., Any], function_args
 
 
 @require(lambda expr:
-         isinstance(expr, ast.Call) and isinstance(expr.func, ast.Name) and expr.func.id == 'all'
-         and isinstance(expr.args[0], ast.GeneratorExp))
+         isinstance(expr, ast.Call) and isinstance(expr.func, ast.Name) and isinstance(expr.args[0], ast.GeneratorExp)
+         and (expr.func.id == 'all' or expr.func.id == 'any'))
 def parse_universal_quantifier(expr: ast.Call, condition: Callable[..., Any], function_args_hints: Dict[str, Any]) -> \
 List[Row]:
     generator_expr = expr.args[0]
@@ -384,8 +368,9 @@ List[Row]:
         assert isinstance(it, ast.Name)
         row_parent = it.id
 
+    assert isinstance(expr.func, ast.Name)
     quantifier_row = Row(target.id,
-                         Kind.UNIVERSAL_QUANTIFIER,
+                         Kind.UNIVERSAL_QUANTIFIER if expr.func.id == 'all' else Kind.EXISTENTIAL_QUANTIFIER,
                          function_args_hints[target.id],
                          visualize_comparators(it),
                          row_parent,
@@ -421,8 +406,8 @@ def parse_expression(expr: ast.expr, condition: Callable[..., Any], function_arg
         rows.extend(parse_comparison(expr, condition, function_args_hints))
     elif isinstance(expr, ast.Call) and isinstance(expr.func, ast.Attribute):
         rows.extend(parse_attribute(expr, condition, function_args_hints))
-    elif isinstance(expr, ast.Call) and isinstance(expr.func, ast.Name) and expr.func.id == 'all' \
-            and isinstance(expr.args[0], ast.GeneratorExp):
+    elif isinstance(expr, ast.Call) and isinstance(expr.func, ast.Name) and \
+            (expr.func.id == 'all' or expr.func.id == 'any') and isinstance(expr.args[0], ast.GeneratorExp):
         rows.extend(parse_universal_quantifier(expr, condition, function_args_hints))
     elif isinstance(expr, ast.BoolOp):
         if isinstance(expr, ast.Or):
@@ -622,11 +607,10 @@ def _recompute(condition: Callable[..., Any], node: ast.expr) -> Tuple[Any, bool
 ############
 # EXAMPLES #
 ############
-import regex as re
 
 
-@require(lambda s: re.match(r'(+|-)?[1-9][0-9]*', s))
-def example_function(s: str) -> None:
+@require(lambda lst: any(item <= 0 for item in lst))
+def example_function(lst: List[int]) -> None:
     pass
 
 

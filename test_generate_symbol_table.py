@@ -257,6 +257,27 @@ def expected_table_example_function_8() -> Table:
     return Table([row_n1, row_n2])
 
 
+@require(lambda lst: any(item <= 0 for item in lst))
+def example_function_9(lst: List[int]):
+    pass
+
+
+def expected_table_example_function_9() -> Table:
+    row_lst = Row(var_id='lst',
+                  kind=Kind.BASE,
+                  type=List[int],
+                  function='example_function_9',
+                  parent=None,
+                  properties={})
+    row_lst_item = Row(var_id='item',
+                       kind=Kind.EXISTENTIAL_QUANTIFIER,
+                       type=int,
+                       function='example_function_9',
+                       parent='lst',
+                       properties={'<=': ({'0'}, set())})
+    return Table([row_lst, row_lst_item])
+
+
 class GenerateSymbolTableTest(unittest.TestCase):
 
     def test_example_function_1(self) -> None:
@@ -294,3 +315,7 @@ class GenerateSymbolTableTest(unittest.TestCase):
     def test_example_function_8(self) -> None:
         self.assertEqual(generate_pretty_table(generate_symbol_table(example_function_8)),
                          generate_pretty_table(expected_table_example_function_8()))
+
+    def test_example_function_9(self) -> None:
+        self.assertEqual(generate_pretty_table(generate_symbol_table(example_function_9)),
+                         generate_pretty_table(expected_table_example_function_9()))

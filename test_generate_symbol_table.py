@@ -305,6 +305,48 @@ def expected_table_example_function_10() -> Table:
     return Table([row_lst, row_sub_lst, row_item])
 
 
+@require(lambda d: all(item > 0 for item in d.values()))
+def example_function_11(d: Dict[int, int]):
+    pass
+
+
+def expected_table_example_function_11() -> Table:
+    row_d = Row(var_id='d',
+                kind=Kind.BASE,
+                type=Dict[int, int],
+                function='example_function_11',
+                parent=None,
+                properties={})
+    row_d_item = Row(var_id='item',
+                     kind=Kind.UNIVERSAL_QUANTIFIER,
+                     type=int,
+                     function='example_function_11',
+                     parent='d.values()',
+                     properties={'>': ({'0'}, set())})
+    return Table([row_d, row_d_item])
+
+
+@require(lambda lst: all(re.match(r'.*', s) for s in lst))
+def example_function_12(lst: List[str]):
+    pass
+
+
+def expected_table_example_function_12() -> Table:
+    row_lst = Row(var_id='lst',
+                  kind=Kind.BASE,
+                  type=List[str],
+                  function='example_function_12',
+                  parent=None,
+                  properties={})
+    row_s = Row(var_id='s',
+                kind=Kind.UNIVERSAL_QUANTIFIER,
+                type=str,
+                function='example_function_12',
+                parent='lst',
+                properties={'re.match': ({("'.*'", 's')}, {'s'})})
+    return Table([row_lst, row_s])
+
+
 class GenerateSymbolTableTest(unittest.TestCase):
 
     def test_example_function_1(self) -> None:
@@ -350,3 +392,11 @@ class GenerateSymbolTableTest(unittest.TestCase):
     def test_example_function_10(self) -> None:
         self.assertEqual(generate_pretty_table(generate_symbol_table(example_function_10)),
                          generate_pretty_table(expected_table_example_function_10()))
+
+    def test_example_function_11(self) -> None:
+        self.assertEqual(generate_pretty_table(generate_symbol_table(example_function_11)),
+                         generate_pretty_table(expected_table_example_function_11()))
+
+    def test_example_function_12(self) -> None:
+        self.assertEqual(generate_pretty_table(generate_symbol_table(example_function_12)),
+                         generate_pretty_table(expected_table_example_function_12()))

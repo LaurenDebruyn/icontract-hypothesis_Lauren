@@ -22,6 +22,9 @@ class Kind(Enum):
     LINK = 4
     EXISTENTIAL_QUANTIFIER = 5
 
+    def __eq__(self, other):
+        return self.name == other.name and self.value == other.value
+
 
 @dataclass
 class Row:
@@ -118,6 +121,8 @@ def visualize_operation(op: Union[ast.operator, ast.cmpop]) -> str:
         return '*'
     elif isinstance(op, ast.Div):
         return '/'
+    elif isinstance(op, ast.In):
+        return 'in'
     else:
         # If it is not a operator that is handled above, we simply return the expression as a string.
         return str(op)
@@ -150,6 +155,7 @@ def visualize_comparators(comp: ast.expr) -> str:
         argument = comp.args[0]
         if isinstance(argument, ast.Call):
             assert isinstance(func, ast.Name)
+
             result = func.id
             nb_parentheses = 1
             while isinstance(argument, ast.Call):
@@ -294,7 +300,8 @@ def parse_attribute(expr: ast.Call, condition: Callable[..., Any], function_args
             variables_without_variable = variables.copy()
             if method_name.startswith(variable):
                 variables_without_variable.remove(variable)
-                method_name = method_name[len(variable):]
+                # method_name = method_name[len(variable):]
+                method_name = method_name[len(variable)+1:]  # +1 to take into account dot between variable and method
             row = Row(variable,
                       Kind.BASE,
                       function_args_hints[variable],
@@ -641,8 +648,8 @@ def _recompute(condition: Callable[..., Any], node: ast.expr) -> Tuple[Any, bool
 ############
 
 
-@require(lambda d: all(item > 0 for item in d.values()))
-def example_function(d: Dict[int, int]) -> None:
+@require(lambda item, lst: item in lst)
+def example_function(item: int, lst: List[int]) -> None:
     pass
 
 

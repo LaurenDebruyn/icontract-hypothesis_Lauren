@@ -59,3 +59,31 @@
 * List[string]
 * tuple
 * dictionaries (partially)
+
+
+# Design decisions
+
+## Symbolic strategies
+
+We could use the SearchStrategies as they are defined in Hypothesis(._internatls.numbers.IntegerStrategy),
+but this would limit us to only passing actual values (here integers) to the strategy.
+An example where this would fail us if we have a formula n1 < n2, this would not be expressible.
+
+A second option is to represent everything as string, but this quickly becomes hard to handle.
+Especially validation and extensibility are hard in this approach.
+
+The third option, which we think is the best one, is to introduce a new strategy for every Hypothesis strategy.
+These strategies would act as a placeholder for the actual strategies, while allowing symbolic variables.
+We therefore call these strategies *symbolic strategies*.
+Symbolic strategies will allow us to easily add new bounds, values, ... and easily transform them into strings
+that we can use for code generation.
+Next to storing the information on the arguments of the actual strategy,
+we will also use them to store extra information that will be necessary to generate complete strategies.
+In a first stage, this will be limited to storing all the filters that have to be applied to this strategy.
+This can be extended in later stages to example map's and flatmap's.
+
+
+# Feature ideas
+
+## Specifying specific examples
+[Hypothesis - reproducing failures](https://hypothesis.readthedocs.io/en/latest/reproducing.html)

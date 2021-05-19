@@ -1,8 +1,9 @@
 from icontract import require
 from generate_symbol_table import Table, Row, Kind
-from typing import List, Union, Dict, Any, Tuple, Set, Callable
+from typing import List, Union, Dict, Any, Tuple, Set, Optional
 from icontract_hypothesis_Lauren.generate_symbol_table import generate_symbol_table, print_pretty_table
 from dataclasses import dataclass, field
+import ast
 
 
 ###########
@@ -56,6 +57,7 @@ class SymbolicTextStrategy:
     whitelist_categories: List[Set[str]] = field(default_factory=list)
     min_size: List[Union[int, str]] = field(default_factory=list)
     max_size: List[Union[int, str]] = field(default_factory=list)
+    filters: List[Tuple[str, Set[str]]] = field(default_factory=list)
 
     def add_blacklist_categories(self, new_blacklist_categories: List[Set[str]]) -> None:
         for new_blacklist_category in new_blacklist_categories:
@@ -72,6 +74,9 @@ class SymbolicTextStrategy:
     def add_min_size_constraints(self, min_constraints: List[Union[int, str]]) -> None:
         for min_constraint in min_constraints:
             self.min_size.append(min_constraint)
+
+    def add_filter(self, new_filter: str, free_variables: Set[str]) -> None:
+        self.filters.append((new_filter, free_variables))
 
     def get_strategy(self):
     # def __repr__(self):
@@ -104,6 +109,11 @@ class SymbolicTextStrategy:
 
         result += ')'
 
+        for f in self.filters:
+            free_variables = [self.var_id]
+            free_variables.extend(f[1])
+            result += f'.filter(lambda {", ".join(free_variables)}: {f[0]})'
+
         return result
 
 
@@ -113,10 +123,14 @@ class SymbolicFromRegexStrategy:
     regexps: List[str] = field(default_factory=list)
     full_match: bool = False
     # TODO introduce extra field for min and max size?
+    filters: List[Tuple[str, Set[str]]] = field(default_factory=list)
 
     def add_regexps(self, regexps: List[str], full_match: bool) -> None:
         self.regexps.extend(regexps)
         self.full_match = self.full_match or full_match
+
+    def add_filter(self, new_filter: str, free_variables: Set[str]) -> None:
+        self.filters.append((new_filter, free_variables))
 
     def get_strategy(self):
     # def __repr__(self):
@@ -135,6 +149,11 @@ class SymbolicFromRegexStrategy:
 
         result += ')'
 
+        for f in self.filters:
+            free_variables = [self.var_id]
+            free_variables.extend(f[1])
+            result += f'.filter(lambda {", ".join(free_variables)}: {f[0]})'
+
         return result
 
 ##################
@@ -142,7 +161,7 @@ class SymbolicFromRegexStrategy:
 ##################
 
 
-def infer_properties(table: Table):
+def generate_strategies(table: Table):
     strategies: Dict[str, Union[SymbolicIntegerStrategy, SymbolicTextStrategy, SymbolicFromRegexStrategy]] = dict()
     for row in table.get_rows():
         if row.kind == Kind.BASE:
@@ -157,6 +176,9 @@ def infer_strategy(row: Row):
         return infer_str_strategy(row)
     else:
         raise NotImplementedError
+    # Call infer_strategy on all children of row and process them accordingly.
+    # Children will be a 'link', 'universal quantifier' or 'existential quantifier' row.
+    # We have to merge all these strategies into one.
 
 
 ############
@@ -179,6 +201,7 @@ def infer_int_strategy(row) -> SymbolicIntegerStrategy:
             else:
                 raise NotImplementedError  # TODO define better error
         else:
+            # TODO add filter
             raise NotImplementedError
 
     return strategy
@@ -220,6 +243,7 @@ def infer_str_strategy(row) -> Union[SymbolicFromRegexStrategy, SymbolicTextStra
         strategy = SymbolicFromRegexStrategy(row.var_id)
 
         for row_property, (args, _) in row_properties.items():
+            # TODO check if row property in regex_properties, else add filter
             strategy_attribute, (regexps, full_match) = regex_properties[row_property](args)  # TODO can I simply pass args?
             if strategy_attribute == 'regex':
                 strategy.add_regexps([regexps], full_match)
@@ -230,7 +254,7 @@ def infer_str_strategy(row) -> Union[SymbolicFromRegexStrategy, SymbolicTextStra
     else:
         strategy = SymbolicTextStrategy(row.var_id)
 
-        for row_property, (args, _) in row_properties.items():
+        for row_property, (args, free_vars) in row_properties.items():
             if row_property in text_properties:
                 strategy_attribute, attribute_args = text_properties[row_property]()
                 if strategy_attribute == 'blacklist_categories':
@@ -246,7 +270,13 @@ def infer_str_strategy(row) -> Union[SymbolicFromRegexStrategy, SymbolicTextStra
                 else:
                     raise NotImplementedError  # TODO define better exception
             else:
-                raise NotImplementedError(f'row property: {row_property}, text properties: {text_properties.keys()}')
+                filter_args = ", ".join(args)
+                if row.var_id in free_vars:  # s.func(..)
+                    strategy.add_filter(f"{row.var_id}.{row_property}({filter_args})", free_vars)
+                else:  # func(..s..)  TODO does this actually occur?
+                    strategy.add_filter(f"{row_property}({filter_args})", free_vars)
+                # TODO add row property as filter
+                # raise NotImplementedError(f'row property: {row_property}, text properties: {text_properties.keys()}')
 
     return strategy
 
@@ -440,8 +470,13 @@ def example_function_3(n1: int, n2: int) -> None:
     pass
 
 
+@require(lambda s: s.isidentifier())
+def example_function_4(s: str):
+    pass
+
+
 if __name__ == '__main__':
-    t = generate_symbol_table(example_function_1)
+    _, t = generate_symbol_table(example_function_4)
     print_pretty_table(t)
-    print(infer_properties(t))
+    print(generate_strategies(t))
     # print(typing_extensions.get_type_hints(example_function_1))

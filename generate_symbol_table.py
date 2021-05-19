@@ -440,8 +440,10 @@ def parse_expression(expr: ast.expr, condition: Callable[..., Any], function_arg
         raise NotImplementedError('Only comparisons and var with attribute calls are currently supported')
 
 
-def generate_symbol_table(func: CallableT) -> Table:
+def generate_symbol_table(func: CallableT) -> Tuple[List[Tuple[ast.AST, Optional[str]]], Table]:
     table = Table()
+    # failed_contracts: List[Tuple[str, Optional[str]]] = []
+    failed_contracts: List[Tuple[ast.AST, Optional[str]]] = []
 
     # Initialize table with an empty (no properties) row for each argument.
     args = inspect.signature(func).parameters
@@ -463,7 +465,6 @@ def generate_symbol_table(func: CallableT) -> Table:
             table.add_row(row)
 
         preconditions = get_contracts(func)
-        failed_contracts: List[Tuple[str, Optional[str]]] = []
         if preconditions:
             for conjunction in preconditions:
                 for contract in conjunction:
@@ -475,21 +476,50 @@ def generate_symbol_table(func: CallableT) -> Table:
                             table.add_row(row)
                     except NotImplementedError as e:
                         if hasattr(e, 'message'):
-                            failed_contracts.append((astunparse.unparse(body), e.message))
+                            # failed_contracts.append((astunparse.unparse(body), e.message))
+                            failed_contracts.append((body, e.message))
                         else:
-                            failed_contracts.append(astunparse.unparse(body))
-        if failed_contracts:
-            print("The following formula(s) are currently not supported:")
-            for failed_contract in failed_contracts:
-                if len(failed_contract) == 2:
-                    print(failed_contract[0])
-                    print(f"Exception.message: {failed_contract[1]}")
-                else:
-                    print(failed_contract)
-            print("Please read the documentation to verify if this formula is supported.")
-            print("You can create an issue on Github if you found a bug or "
-                  "if you would like to see this feature supported.\n")
-    return table
+                            # failed_contracts.append((astunparse.unparse(body), ''))
+                            failed_contracts.append((body, ''))
+        # if failed_contracts:
+        #     print("The following formula(s) are currently not supported:")
+        #     for failed_contract in failed_contracts:
+        #         contract = failed_contract[0]
+        #         error_message = failed_contract[1]
+        #         # print(failed_contract[0])
+        #         print(astunparse.unparse(contract))
+        #         if error_message:
+        #             print(f"Exception.message: {error_message}")
+        #         assert isinstance(contract, ast.expr)
+        #         print(f"lambda function: lambda {', '.join(extract_variables_from_expression(contract, type_hints))}: "
+        #               f"{astunparse.unparse(contract)[1:-2]}")
+        #     print("Please read the documentation to verify if this formula is supported.")
+        #     print("You can create an issue on Github if you found a bug or "
+        #           "if you would like to see this feature supported.\n")
+    return failed_contracts, table
+
+
+def generate_and_print_table(func: CallableT) -> None:
+    failed_contracts, table = generate_symbol_table(func)
+    print_pretty_table(table)
+
+    if failed_contracts:
+        type_hints = typing.get_type_hints(func)
+
+        print("The following formula(s) are currently not supported and will be added as filters:\n")
+        for failed_contract in failed_contracts:
+            contract = failed_contract[0]
+            error_message = failed_contract[1]
+            # print(failed_contract[0])
+            print(astunparse.unparse(contract))
+            if error_message:
+                print(f"Exception.message: {error_message}")
+            # assert isinstance(contract, ast.expr)
+            # print(f"lambda function: lambda {', '.join(extract_variables_from_expression(contract, type_hints))}: "
+            #       f"{astunparse.unparse(contract)[1:-2]}")
+        print("Please read the documentation to verify if these formula(s) are supported.")
+        print("You can create an issue on Github if you found a bug or "
+              "if you would like to see this feature supported.\n")
 
 
 def generate_dag_from_table(table: Table) -> nx.DiGraph:
@@ -648,18 +678,27 @@ def _recompute(condition: Callable[..., Any], node: ast.expr) -> Tuple[Any, bool
 ############
 
 
-@require(lambda item, lst: item in lst)
-def example_function(item: int, lst: List[int]) -> None:
+@require(lambda n1: len(n1) > 10)
+def example_function(n1: int) -> None:
     pass
 
 
-# @require(lambda s: all(item > 0 for item in s.split('\n')))
-# def example_function(s: str) -> None:
-#     pass
+@require(lambda n1: n1 % 2 == 0)
+@require(lambda n1, n2: n2 > 0 if n1 < 0 else True)
+def another_example_function(n1: int, n2: int) -> None:
+    pass
+
+
+@require(lambda lst: all(item > 0 for item in lst if item < 100))
+def another_another_example_function(lst: List[int]) -> None:
+    pass
+
+
+@require(lambda s: sorted(s))
+def some_func(s: str) -> None:
+    pass
 
 
 if __name__ == '__main__':
     print("\n\nexample 1:\n")
-    table_1 = generate_symbol_table(example_function)
-    print_pretty_table(table_1)
-    g = generate_dag_from_table(table_1)
+    generate_and_print_table(some_func)

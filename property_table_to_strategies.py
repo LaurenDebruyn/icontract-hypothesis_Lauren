@@ -30,7 +30,7 @@ class SymbolicIntegerStrategy:
         self.filters.append((new_filter, free_variables))
 
     def get_strategy(self):
-    # def __repr__(self):
+        # def __repr__(self):
         result = f'st.integers('
         if len(self.min_value) == 1:
             result += f'min_value={self.min_value[0]}'
@@ -79,7 +79,7 @@ class SymbolicTextStrategy:
         self.filters.append((new_filter, free_variables))
 
     def get_strategy(self):
-    # def __repr__(self):
+        # def __repr__(self):
         result = f'st.text('
         if len(self.blacklist_categories) > 0 or len(self.whitelist_categories) > 0:
             result += 'alphabet=st.characters('
@@ -133,7 +133,7 @@ class SymbolicFromRegexStrategy:
         self.filters.append((new_filter, free_variables))
 
     def get_strategy(self):
-    # def __repr__(self):
+        # def __repr__(self):
         result = f'st.from_regex(regex=r"'
         if len(self.regexps) == 0:
             result += '.*'
@@ -155,6 +155,7 @@ class SymbolicFromRegexStrategy:
             result += f'.filter(lambda {", ".join(free_variables)}: {f[0]})'
 
         return result
+
 
 ##################
 # IMPLEMENTATION #
@@ -189,46 +190,35 @@ def infer_strategy(row: Row):
 def infer_int_strategy(row) -> SymbolicIntegerStrategy:
     row_properties = row.properties
     strategy = SymbolicIntegerStrategy(row.var_id)
-    for row_property, (args, _) in row_properties.items():
+    # TODO better name for args
+    for row_property, (args, free_variables) in row_properties.items():
         # TODO this should already have happened in the property table
-        args = list(map(lambda arg: int(arg) if arg.isnumeric() else arg, args))
-        if row_property in int_properties:
-            strategy_attribute, attribute_args = int_properties[row_property](args)
-            if strategy_attribute == 'min_value':
-                strategy.add_min_value_constraints(attribute_args)
-            elif strategy_attribute == 'max_value':
-                strategy.add_max_value_constraints(attribute_args)
-            else:
-                raise NotImplementedError  # TODO define better error
+        args = [
+                    int(arg) if arg.isnumeric() else arg
+                    for arg in args
+                ]
+
+        if row_property == '<':
+            strategy.add_max_value_constraints(
+                [
+                    arg - 1 if isinstance(arg, int) else f'{arg}-1'
+                    for arg in args
+                ])
+        elif row_property == '<=':
+            strategy.add_max_value_constraints(args)
+        elif row_property == '>':
+            strategy.add_min_value_constraints(
+                [
+                    arg + 1 if isinstance(arg, int) else f'{arg}+1'
+                    for arg in args
+                ]
+            )
+        elif row_property == '>=':
+            strategy.add_min_value_constraints(args)
         else:
-            # TODO add filter
-            raise NotImplementedError
+            strategy.add_filter(f"{row.var_id}{row_property}{args}", free_variables)
 
     return strategy
-
-
-def int_lt(args: List[Union[int, str]]) -> Tuple[str, List[Any]]:
-    args = list(map(lambda arg: arg - 1 if isinstance(arg, int) else f'{arg}-1', args))
-    return 'max_value', args
-
-
-def int_lte(args: List[Union[int, str]]) -> Tuple[str, List[Any]]:
-    return 'max_value', args
-
-
-def int_gt(args: List[Union[int, str]]) -> Tuple[str, List[Any]]:
-    args = list(map(lambda arg: arg + 1 if isinstance(arg, int) else f'{arg}+1', args))
-    return 'min_value', args
-
-
-def int_gte(args: List[Union[int, str]]) -> Tuple[str, List[Any]]:
-    return 'min_value', args
-
-
-int_properties = {'<': int_lt,
-                  '<=': int_lte,
-                  '>': int_gt,
-                  '>=': int_gte}
 
 
 ###########
@@ -236,39 +226,54 @@ int_properties = {'<': int_lt,
 ###########
 
 
-def infer_str_strategy(row) -> Union[SymbolicFromRegexStrategy, SymbolicTextStrategy]:
+def infer_str_strategy(row: Row) -> Union[SymbolicFromRegexStrategy, SymbolicTextStrategy]:
     # TODO if text properties present, it becomes a from_text strategy, else it will be a text strategy.
     row_properties = row.properties
-    if is_regex_strategy_needed(row):
+    if any(row_property in ['contains', 'in', 're.match', 'startswith', 'endswith']
+           for row_property in row.properties.keys()):
         strategy = SymbolicFromRegexStrategy(row.var_id)
-
-        for row_property, (args, _) in row_properties.items():
-            # TODO check if row property in regex_properties, else add filter
-            strategy_attribute, (regexps, full_match) = regex_properties[row_property](args)  # TODO can I simply pass args?
-            if strategy_attribute == 'regex':
-                strategy.add_regexps([regexps], full_match)
-            elif strategy_attribute == 'regexps':
-                strategy.add_regexps(regexps, full_match)
-            else:
-                raise NotImplementedError  # TODO better fault handling
-    else:
-        strategy = SymbolicTextStrategy(row.var_id)
-
         for row_property, (args, free_vars) in row_properties.items():
-            if row_property in text_properties:
-                strategy_attribute, attribute_args = text_properties[row_property]()
-                if strategy_attribute == 'blacklist_categories':
-                    strategy.add_blacklist_categories([attribute_args])
-                elif strategy_attribute == 'whitelist_categories':
-                    strategy.add_whitelist_categories([attribute_args])
-                elif strategy_attribute == 'min_size':
-                    assert isinstance(attribute_args, str) or isinstance(attribute_args, int)
-                    strategy.add_min_size_constraints([attribute_args])
-                elif strategy_attribute == 'max_size':
-                    assert isinstance(attribute_args, str) or isinstance(attribute_args, int)
-                    strategy.add_max_size_constraints([attribute_args])
-                else:
-                    raise NotImplementedError  # TODO define better exception
+            if row_property == 'isalnum':
+                strategy.add_regexps([r'^[0-9a-zA-Z]+$'], True)
+            elif row_property == 'isalpha':
+                strategy.add_regexps([r'^[a-zA-Z]+$'], True)
+            elif row_property == 'isdigit':
+                strategy.add_regexps([r'^[0-9]*$'], True)
+            elif row_property == 'islower':
+                strategy.add_regexps([r'^[a-z]$'], True)
+            elif row_property == 'isnumeric':
+                strategy.add_regexps([r'^(-[0-9]*|[0-9]*)$'], True)
+            elif row_property == 'isspace':
+                strategy.add_regexps([r'^\s+$'], True)
+            elif row_property == 'isupper':
+                strategy.add_regexps([r'^[A-Z]+$'], True)
+            elif row_property == 'isdecimal':
+                strategy.add_regexps([r'^\d*\.?\d+$'], True)
+            elif row_property == 're.match':
+                # re.match(r'..', s), we only want the first argument and we don't want any leading/ending \'
+                strategy.add_regexps([arg[0].strip("\'") for arg in args], True)
+            elif row_property == 'contains' or row_property == 'in':
+                strategy.add_regexps([arg.strip("\'") for arg in args], False)
+            elif row_property == 'startswith':
+                stripped_args = [arg.strip("\'") for arg in args]
+                strategy.add_regexps([f'^{arg}' for arg in stripped_args], False)
+            elif row_property == 'endswith':
+                stripped_args = [arg.strip("\'") for arg in args]
+                strategy.add_regexps([f'.*{arg}$' for arg in stripped_args], True)
+            elif row_property == '<':
+                # TODO
+                args = [arg - 1 if isinstance(arg, int) else f'{arg}-1' for arg in args]
+                raise NotImplementedError
+            elif row_property == '<=':
+                # TODO
+                raise NotImplementedError
+            elif row_property == '>':
+                # TODO
+                args = [arg + 1 if isinstance(arg, int) else f'{arg}+1' for arg in args]
+                raise NotImplementedError
+            elif row_property == '>=':
+                # TODO
+                raise NotImplementedError
             else:
                 filter_args = ", ".join(args)
                 if row.var_id in free_vars:  # s.func(..)
@@ -276,182 +281,54 @@ def infer_str_strategy(row) -> Union[SymbolicFromRegexStrategy, SymbolicTextStra
                 else:  # func(..s..)  TODO does this actually occur?
                     strategy.add_filter(f"{row_property}({filter_args})", free_vars)
                 # TODO add row property as filter
-                # raise NotImplementedError(f'row property: {row_property}, text properties: {text_properties.keys()}')
+    else:
+        strategy = SymbolicTextStrategy(row.var_id)
+
+        for row_property, (args, free_vars) in row_properties.items():
+            if row_property == 'isalnum':
+                strategy.add_whitelist_categories([{'Ll', 'Lu', 'Nd'}])
+            elif row_property == 'isalpha':
+                strategy.add_whitelist_categories([{'Ll', 'Lu'}])
+            elif row_property == 'isdigit':
+                strategy.add_whitelist_categories([{'Nd'}])
+            elif row_property == 'islower':
+                strategy.add_whitelist_categories([{'Ll'}])
+            elif row_property == 'isnumeric':
+                strategy.add_whitelist_categories([{'Nd', 'Nl', 'No'}])
+            elif row_property == 'isspace':
+                strategy.add_whitelist_categories([{'Zs'}])
+            elif row_property == 'isupper':
+                strategy.add_whitelist_categories([{'Lu'}])
+            elif row_property == 'isdecimal':
+                strategy.add_whitelist_categories([{'Nd'}])
+            elif row_property == '<':
+                # TODO
+                args = [arg - 1 if isinstance(arg, int) else f'{arg}-1' for arg in args]
+                raise NotImplementedError
+            elif row_property == '<=':
+                # TODO
+                raise NotImplementedError
+            elif row_property == '>':
+                # TODO
+                args = [arg + 1 if isinstance(arg, int) else f'{arg}+1' for arg in args]
+                raise NotImplementedError
+            elif row_property == '>=':
+                # TODO
+                raise NotImplementedError
+            else:
+                filter_args = ", ".join(args)
+                if row.var_id in free_vars:  # s.func(..)
+                    strategy.add_filter(f"{row.var_id}.{row_property}({filter_args})", free_vars)
+                else:  # func(..s..)  TODO does this actually occur?
+                    strategy.add_filter(f"{row_property}({filter_args})", free_vars)
+                # TODO add row property as filter
 
     return strategy
 
 
-def is_regex_strategy_needed(row: Row) -> bool:
-    regex_only_properties = ['contains', 'in', 're.match', 'startswith', 'endswith']
-    if any(row_property in regex_only_properties for row_property in row.properties.keys()):
-        return True
-    else:
-        return False
-
-
-def text_isalnum() -> Tuple[str, Set[str]]:
-    return 'whitelist_categories', {'Ll', 'Lu', 'Nd'}
-
-
-def text_isalpha() -> Tuple[str, Set[str]]:
-    return 'whitelist_categories', {'Ll', 'Lu'}
-
-
-def text_isdigit() -> Tuple[str, Set[str]]:
-    return 'whitelist_categories', {'Nd'}
-
-
-def text_islower() -> Tuple[str, Set[str]]:
-    return 'whitelist_categories', {'Ll'}
-
-
-def text_isnumeric() -> Tuple[str, Set[str]]:
-    return 'whitelist_categories', {'Nd', 'Nl', 'No'}
-
-
-def text_isspace() -> Tuple[str, Set[str]]:
-    return 'whitelist_categories', {'Zs'}
-
-
-def text_isupper() -> Tuple[str, Set[str]]:
-    return 'whitelist_categories', {'Lu'}
-
-
-def text_isdecimal() -> Tuple[str, Set[str]]:
-    return 'whitelist_categories', {'Nd'}
-
-
-def text_len_lt(args: List[Union[int, str]]) -> Tuple[str, List[Any]]:
-    return 'max_size', args
-
-
-def text_len_lte(args: List[Union[int, str]]) -> Tuple[str, List[Any]]:
-    args = list(map(lambda arg: arg - 1 if isinstance(arg, int) else f'{arg}-1', args))
-    return 'max_size', args
-
-
-def text_len_gt(args: List[Union[int, str]]) -> Tuple[str, List[Any]]:
-    return 'min_size', args
-
-
-def text_len_gte(args: List[Union[int, str]]) -> Tuple[str, List[Any]]:
-    args = list(map(lambda arg: arg + 1 if isinstance(arg, int) else f'{arg}+1', args))
-    return 'min_size', args
-
-
-def regex_isalnum() -> Tuple[str, Tuple[str, bool]]:
-    return 'regex', (r'^[0-9a-zA-Z]+$', True)
-
-
-def regex_isalpha() -> Tuple[str, Tuple[str, bool]]:
-    return 'regex', (r'^[a-zA-Z]+$', True)
-
-
-def regex_isdigit() -> Tuple[str, Tuple[str, bool]]:
-    return 'regex', (r'^[0-9]*$', True)
-
-
-def regex_islower() -> Tuple[str, Tuple[str, bool]]:
-    return 'regex', (r'^[a-z]$', True)
-
-
-def regex_isnumeric() -> Tuple[str, Tuple[str, bool]]:
-    return 'regex', (r'^(-[0-9]*|[0-9]*)$', True)
-
-
-def regex_isspace() -> Tuple[str, Tuple[str, bool]]:
-    return 'regex', (r'^\s+$', True)
-
-
-def regex_isupper() -> Tuple[str, Tuple[str, bool]]:
-    return 'regex', (r'^[A-Z]+$', True)
-
-
-def regex_isdecimal() -> Tuple[str, Tuple[str, bool]]:
-    return 'regex', (r'^\d*\.?\d+$', True)
-
-
-def regex_re_match(args: List[str]) -> Tuple[str, Tuple[List[str], bool]]:
-    # re.match(r'..', s), we only want the first argument and we don't want any leading/ending \'
-    return 'regexps', (list(map(lambda arg: arg[0].strip("\'"), args)), True)
-
-
-def regex_contains(args: List[str]) -> Tuple[str, Tuple[List[str], bool]]:
-    args = list(map(lambda arg: arg.strip("\'"), args))
-    return 'regexps', (args, False)
-
-
-def regex_in(args: List[str]) -> Tuple[str, Tuple[List[str], bool]]:
-    return regex_contains(args)
-
-
-def regex_startswith(args: List[str]) -> Tuple[str, Tuple[List[str], bool]]:
-    args = list(map(lambda arg: arg.strip("\'"), args))
-    return 'regexps', (list(map(lambda arg: f'^{arg}', args)), False)
-
-
-def regex_endswith(args: List[str]) -> Tuple[str, Tuple[List[str], bool]]:
-    args = list(map(lambda arg: arg.strip("\'"), args))
-    return 'regexps', (list(map(lambda arg: f'.*{arg}$', args)), True)
-
-
-def regex_len_lt(args: List[Union[int, str]]) -> Tuple[str, List[Any]]:
-    return 'max_size', args
-
-
-def regex_len_lte(args: List[Union[int, str]]) -> Tuple[str, List[Any]]:
-    args = list(map(lambda arg: arg - 1 if isinstance(arg, int) else f'{arg}-1', args))
-    return 'max_size', args
-
-
-def regex_len_gt(args: List[Union[int, str]]) -> Tuple[str, List[Any]]:
-    return 'min_size', args
-
-
-def regex_len_gte(args: List[Union[int, str]]) -> Tuple[str, List[Any]]:
-    args = list(map(lambda arg: arg + 1 if isinstance(arg, int) else f'{arg}+1', args))
-    return 'min_size', args
-
-
-text_properties = {
-    'isalnum': text_isalnum,
-    'isalpha': text_isalpha,
-    'isdigit': text_isdigit,
-    'islower': text_islower,
-    'isnumeric': text_isnumeric,
-    'isspace': text_isspace,
-    'isupper': text_isupper,
-    'isdecimal': text_isdecimal,
-    'len_lt': text_len_lt,
-    'len_lte': text_len_lte,
-    'len_gt': text_len_gt,
-    'len_gte': text_len_gte,
-}
-
-regex_properties = {
-    'isalnum': regex_isalnum,
-    'isalpha': regex_isalpha,
-    'isdigit': regex_isdigit,
-    'islower': regex_islower,
-    'isnumeric': regex_isnumeric,
-    'isspace': regex_isspace,
-    'isupper': regex_isupper,
-    'isdecimal': regex_isdecimal,
-    're.match': regex_re_match,
-    'contains': regex_contains,
-    'in': regex_in,
-    'startswith': regex_startswith,
-    'endswith': regex_endswith,
-    'len_lt': regex_len_lt,
-    'len_lte': regex_len_lte,
-    'len_gt': regex_len_gt,
-    'len_gte': regex_len_gte,
-}
-
-
-#########
-# TESTS #
-#########
+# region Description
+# TESTS
+# endregion
 
 
 @require(lambda n1: n1 > 0)

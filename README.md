@@ -82,8 +82,40 @@ we will also use them to store extra information that will be necessary to gener
 In a first stage, this will be limited to storing all the filters that have to be applied to this strategy.
 This can be extended in later stages to example map's and flatmap's.
 
+## What happens with contracts we cannot parse?
+
+### not in property table
+***TODO***
+
+### not in strategy
+***TODO***
+
+## Approach for handling 'link', 'universal_quantifier' and 'existential_quantifier'
+
+1. generate_strategies(table: Table)  
+This will remain the same. For each function argument exists one unique BASE row.
+We will start from these rows and incorporate the other rows recursively.
+
+2. infer_strategy(row: Row)
+    1. Is going to be extended with an extra case for lists (other types that should be supported will be added here).
+    2. Each case will be extended to cater for the different possibilities: links, universal quantifiers and existential quantifiers.
+    3. At the end of the function are we going to iterate over all related rows and merge them all into one strategy.
+    How are we going to this? We will pass the parent strategy on and this strategy will be extended with the information from the new rows.
+    This problem can be divided into three classes:
+        * links
+            * similar to how the base strategies work, only we will now extend a strategy instead of creating a new one
+        * universal quantifiers
+            * again three different options (note that in this case, there will always be a parent strategy)
+                * the parent has already a sub-strategy of the same type (int, string, list, ...), then this sub-strategy will be simply extended
+                * the parent has already a sub-strategy, but of a different type, then a new strategy will be created and the two strategies are merged
+                * the parent has not yet a sub-strategy, then a new strategy will be created 
+        * existential quantifiers 
+            * these will simply be converted into filters to the parent strategy
+
 
 # Feature ideas
 
 ## Specifying specific examples
 [Hypothesis - reproducing failures](https://hypothesis.readthedocs.io/en/latest/reproducing.html)
+
+

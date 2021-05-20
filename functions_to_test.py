@@ -146,3 +146,14 @@ def example_function_25(s: str):
 @require(lambda s: s.contains('s33l'))
 def example_function_26(s: str):
     pass
+
+
+@require(lambda s: len(s) > 5 and len(s) <= 10)
+def example_function_link_1(s: str):
+    """SymbolicTextStrategy with link"""
+    pass
+
+@require(lambda s: re.match(r'test', s) and len(s) > 5 and len(s) <= 10)
+def example_function_link_2(s: str):
+    """SymbolicFromRegexStrategy with link"""
+    pass

@@ -36,7 +36,7 @@ class StrategyFactory:
 
         composite_strategy = f"@st.composite\ndef test_strategy(draw) -> ...:\n"
         for var_id, strategy in strategies.items():
-            composite_strategy += f"{tab}{var_id} = draw({strategy.get_strategy()})\n"
+            composite_strategy += f"{tab}{var_id} = draw({strategy.represent()})\n"
             func_args.append(var_id)
         for failed_contract in failed_contracts:
             failed_contract_str = astunparse.unparse(failed_contract[0]).rstrip('\n')

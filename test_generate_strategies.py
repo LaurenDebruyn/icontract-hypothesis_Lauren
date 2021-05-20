@@ -170,7 +170,6 @@ def expected_strategy_example_function_26():
                                            max_size=[],
                                            filters=[])}
 
-
 class GenerateSymbolTableTest(unittest.TestCase):
 
     def test_example_function_1(self) -> None:
@@ -292,3 +291,14 @@ class GenerateSymbolTableTest(unittest.TestCase):
                          generate_strategies(strategy_factory.generate_property_table_without_failed_contracts()))
         self.assertEqual('st.from_regex(regex=r"s33l")',
                          generate_strategies(strategy_factory.generate_property_table_without_failed_contracts())['s'].represent())
+
+    def test_example_function_link_1(self) -> None:
+        strategy_factory = StrategyFactory(example_function_link_1)
+        self.assertEqual('st.text(min_size=6, max_size=10)',
+                         strategy_factory.generate_strategies()['s'].represent())
+
+    def test_example_function_link_2(self) -> None:
+        strategy_factory = StrategyFactory(example_function_link_2)
+        self.assertEqual('st.from_regex(regex=r"test", fullmatch=True).filter(lambda s: len(s) > 5)'
+                         '.filter(lambda s: len(s) <= 10)',
+                         strategy_factory.generate_strategies()['s'].represent())

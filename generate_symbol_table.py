@@ -22,8 +22,8 @@ class Kind(Enum):
     LINK = 4
     EXISTENTIAL_QUANTIFIER = 5
 
-    def __eq__(self, other):
-        return self.name == other.name and self.value == other.value
+    # def __eq__(self, other):
+    #     return self.name == other.name and self.value == other.value
 
 
 @dataclass

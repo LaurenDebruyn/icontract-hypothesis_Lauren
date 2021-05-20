@@ -476,26 +476,9 @@ def generate_symbol_table(func: CallableT) -> Tuple[List[Tuple[ast.AST, Optional
                             table.add_row(row)
                     except NotImplementedError as e:
                         if hasattr(e, 'message'):
-                            # failed_contracts.append((astunparse.unparse(body), e.message))
                             failed_contracts.append((body, e.message))
                         else:
-                            # failed_contracts.append((astunparse.unparse(body), ''))
                             failed_contracts.append((body, ''))
-        # if failed_contracts:
-        #     print("The following formula(s) are currently not supported:")
-        #     for failed_contract in failed_contracts:
-        #         contract = failed_contract[0]
-        #         error_message = failed_contract[1]
-        #         # print(failed_contract[0])
-        #         print(astunparse.unparse(contract))
-        #         if error_message:
-        #             print(f"Exception.message: {error_message}")
-        #         assert isinstance(contract, ast.expr)
-        #         print(f"lambda function: lambda {', '.join(extract_variables_from_expression(contract, type_hints))}: "
-        #               f"{astunparse.unparse(contract)[1:-2]}")
-        #     print("Please read the documentation to verify if this formula is supported.")
-        #     print("You can create an issue on Github if you found a bug or "
-        #           "if you would like to see this feature supported.\n")
     return failed_contracts, table
 
 
@@ -514,9 +497,6 @@ def generate_and_print_table(func: CallableT) -> None:
             print(astunparse.unparse(contract))
             if error_message:
                 print(f"Exception.message: {error_message}")
-            # assert isinstance(contract, ast.expr)
-            # print(f"lambda function: lambda {', '.join(extract_variables_from_expression(contract, type_hints))}: "
-            #       f"{astunparse.unparse(contract)[1:-2]}")
         print("Please read the documentation to verify if these formula(s) are supported.")
         print("You can create an issue on Github if you found a bug or "
               "if you would like to see this feature supported.\n")

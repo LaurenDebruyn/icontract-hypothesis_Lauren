@@ -1,3 +1,5 @@
+import abc
+
 from icontract import require
 from generate_symbol_table import Table, Row, Kind
 from typing import List, Union, Dict, Any, Tuple, Set, Optional, Sequence
@@ -6,82 +8,48 @@ from dataclasses import dataclass, field
 import ast
 
 
-###########
-# CLASSES #
-###########
+##
+# CLASSES
+##
 
 
-# @dataclass
-# class SymbolicIntegerStrategy:
-#     var_id: str
-#     min_value: List[Union[int, str]] = field(default_factory=list)
-#     max_value: List[Union[int, str]] = field(default_factory=list)
-#     filters: List[Tuple[str, Set[str]]] = field(default_factory=list)
-#
-#     def add_min_value_constraints(self, min_constraints: List[Union[int, str]]) -> None:
-#         for min_constraint in min_constraints:
-#             self.min_value.append(min_constraint)
-#
-#     def add_max_value_constraints(self, max_constraints: List[Union[int, str]]) -> None:
-#         for max_constraint in max_constraints:
-#             self.max_value.append(max_constraint)
-#
-#     def add_filter(self, new_filter: str, free_variables: Set[str]) -> None:
-#         self.filters.append((new_filter, free_variables))
-#
-#     def get_strategy(self):
-#         # def __repr__(self):
-#         result = f'st.integers('
-#         if len(self.min_value) == 1:
-#             result += f'min_value={self.min_value[0]}'
-#         elif len(self.min_value) > 1:
-#             result += f'min_value=max({", ".join(str(e) for e in self.min_value)})'
-#         if len(self.min_value) > 0 and len(self.max_value) > 0:
-#             result += ', '
-#         if len(self.max_value) == 1:
-#             result += f'max_value={self.max_value[0]}'
-#         elif len(self.max_value) > 1:
-#             result += f'max_value=min({", ".join(str(e) for e in self.max_value)}))'
-#         result += ')'
-#         for f in self.filters:
-#             free_variables = [self.var_id]
-#             free_variables.extend(f[1])
-#             result += f'.filter(lambda {", ".join(free_variables)}: {f[0]})'
-#         return result
+class SymbolicStrategy:
+    @abc.abstractmethod
+    def represent(self) -> str:
+        ...
 
 
 @dataclass
-class SymbolicIntegerStrategy:
+class SymbolicIntegerStrategy(SymbolicStrategy):
     var_id: str
     min_value: Sequence[Union[int, str]]
     max_value: Sequence[Union[int, str]]
     filters: Sequence[Tuple[str, Set[str]]]
 
     def represent(self):
-        # def __repr__(self):
-        result = f'st.integers('
+        result: List[str] = [f'st.integers(']
         if self.min_value:
             if len(self.min_value) == 1:
-                result += f'min_value={self.min_value[0]}'
+                result.append(f'min_value={self.min_value[0]}')
             elif len(self.min_value) > 1:
-                result += f'min_value=max({", ".join(str(e) for e in self.min_value)})'
+                result.append(f'min_value=max({", ".join(str(e) for e in self.min_value)})')
         if self.min_value and self.max_value:
-            result += ', '
+            result.append(', ')
         if self.max_value:
             if len(self.max_value) == 1:
-                result += f'max_value={self.max_value[0]}'
+                result.append(f'max_value={self.max_value[0]}')
             elif len(self.max_value) > 1:
-                result += f'max_value=min({", ".join(str(e) for e in self.max_value)}))'
-        result += ')'
+                result.append(f'max_value=min({", ".join(str(e) for e in self.max_value)}))')
+        result.append(')')
         for f in self.filters:
             free_variables = [self.var_id]
             free_variables.extend(f[1])
-            result += f'.filter(lambda {", ".join(free_variables)}: {f[0]})'
-        return result
+            result.append(f'.filter(lambda {", ".join(free_variables)}: {f[0]})')
+        return "".join(result)
 
 
 @dataclass
-class SymbolicTextStrategy:
+class SymbolicTextStrategy(SymbolicStrategy):
     var_id: str
     blacklist_categories: Sequence[Set[str]]
     whitelist_categories: Sequence[Set[str]]
@@ -90,113 +58,45 @@ class SymbolicTextStrategy:
     filters: Sequence[Tuple[str, Set[str]]]
 
     def represent(self):
-        # def __repr__(self):
-        result = f'st.text('
+        result = [f'st.text(']
         if len(self.blacklist_categories) > 0 or len(self.whitelist_categories) > 0:
-            result += 'alphabet=st.characters('
+            result.append('alphabet=st.characters(')
         if len(self.blacklist_categories) >= 1:
-            result += f'blacklist_categories={tuple(sorted(set.intersection(*self.blacklist_categories)))}'
+            result.append(f'blacklist_categories={tuple(sorted(set.intersection(*self.blacklist_categories)))}')
         if len(self.whitelist_categories) >= 1:
             if len(self.blacklist_categories) > 0:
-                result += ', '
-            result += f'whitelist_categories={tuple(sorted(set.intersection(*self.whitelist_categories)))}'
+                result.append(', ')
+            result.append(f'whitelist_categories={tuple(sorted(set.intersection(*self.whitelist_categories)))}')
         if len(self.blacklist_categories) > 0 or len(self.whitelist_categories) > 0:
-            result += ')'
+            result.append(')')
 
         if (len(self.blacklist_categories) > 0 or len(self.whitelist_categories) > 0) and len(self.min_size) > 0:
-            result += ', '
+            result.append(', ')
         if len(self.min_size) == 1:
-            result += f'min_size={self.min_size[0]}'
+            result.append(f'min_size={self.min_size[0]}')
         elif len(self.min_size) > 1:
-            result += f'min_size=max({self.min_size})'
+            result.append(f'min_size=max({self.min_size})')
 
         if (len(self.blacklist_categories) > 0 or len(self.whitelist_categories) > 0 or len(self.min_size) > 0) \
                 and len(self.max_size) > 0:
-            result += ', '
+            result.append(', ')
         if len(self.max_size) == 1:
-            result += f'max_size={self.max_size[0]}'
+            result.append(f'max_size={self.max_size[0]}')
         elif len(self.max_size) > 1:
-            result += f'max_size=min({self.max_size})'
+            result.append(f'max_size=min({self.max_size})')
 
-        result += ')'
+        result.append(')')
 
         for f in self.filters:
             free_variables = [self.var_id]
             free_variables.extend(f[1])
-            result += f'.filter(lambda {", ".join(free_variables)}: {f[0]})'
+            result.append(f'.filter(lambda {", ".join(free_variables)}: {f[0]})')
 
-        return result
-
-
-# @dataclass
-# class SymbolicTextStrategy:
-#     var_id: str
-#     blacklist_categories: List[Set[str]] = field(default_factory=list)
-#     whitelist_categories: List[Set[str]] = field(default_factory=list)
-#     min_size: List[Union[int, str]] = field(default_factory=list)
-#     max_size: List[Union[int, str]] = field(default_factory=list)
-#     filters: List[Tuple[str, Set[str]]] = field(default_factory=list)
-#
-#     def add_blacklist_categories(self, new_blacklist_categories: List[Set[str]]) -> None:
-#         for new_blacklist_category in new_blacklist_categories:
-#             self.blacklist_categories.append(new_blacklist_category)
-#
-#     def add_whitelist_categories(self, new_whitelist_categories: List[Set[str]]) -> None:
-#         for new_whitelist_category in new_whitelist_categories:
-#             self.whitelist_categories.append(new_whitelist_category)
-#
-#     def add_max_size_constraints(self, max_constraints: List[Union[int, str]]) -> None:
-#         for max_constraint in max_constraints:
-#             self.max_size.append(max_constraint)
-#
-#     def add_min_size_constraints(self, min_constraints: List[Union[int, str]]) -> None:
-#         for min_constraint in min_constraints:
-#             self.min_size.append(min_constraint)
-#
-#     def add_filter(self, new_filter: str, free_variables: Set[str]) -> None:
-#         self.filters.append((new_filter, free_variables))
-#
-#     def get_strategy(self):
-#         # def __repr__(self):
-#         result = f'st.text('
-#         if len(self.blacklist_categories) > 0 or len(self.whitelist_categories) > 0:
-#             result += 'alphabet=st.characters('
-#         if len(self.blacklist_categories) >= 1:
-#             result += f'blacklist_categories={tuple(sorted(set.intersection(*self.blacklist_categories)))}'
-#         if len(self.whitelist_categories) >= 1:
-#             if len(self.blacklist_categories) > 0:
-#                 result += ', '
-#             result += f'whitelist_categories={tuple(sorted(set.intersection(*self.whitelist_categories)))}'
-#         if len(self.blacklist_categories) > 0 or len(self.whitelist_categories) > 0:
-#             result += ')'
-#
-#         if (len(self.blacklist_categories) > 0 or len(self.whitelist_categories) > 0) and len(self.min_size) > 0:
-#             result += ', '
-#         if len(self.min_size) == 1:
-#             result += f'min_size={self.min_size[0]}'
-#         elif len(self.min_size) > 1:
-#             result += f'min_size=max({self.min_size})'
-#
-#         if (len(self.blacklist_categories) > 0 or len(self.whitelist_categories) > 0 or len(self.min_size) > 0) \
-#                 and len(self.max_size) > 0:
-#             result += ', '
-#         if len(self.max_size) == 1:
-#             result += f'max_size={self.max_size[0]}'
-#         elif len(self.max_size) > 1:
-#             result += f'max_size=min({self.max_size})'
-#
-#         result += ')'
-#
-#         for f in self.filters:
-#             free_variables = [self.var_id]
-#             free_variables.extend(f[1])
-#             result += f'.filter(lambda {", ".join(free_variables)}: {f[0]})'
-#
-#         return result
+        return "".join(result)
 
 
 @dataclass
-class SymbolicFromRegexStrategy:
+class SymbolicFromRegexStrategy(SymbolicStrategy):
     var_id: str
     regexps: Sequence[str]
     full_match: bool
@@ -205,37 +105,36 @@ class SymbolicFromRegexStrategy:
     filters: Sequence[Tuple[str, Set[str]]]
 
     def represent(self):
-        # def __repr__(self):
-        result = f'st.from_regex(regex=r"'
+        result = [f'st.from_regex(regex=r"']
         if len(self.regexps) == 0:
-            result += '.*'
+            result.append('.*')
         elif len(self.regexps) == 1:
-            result += self.regexps[0]
+            result.append(self.regexps[0])
         else:
             for regexp in self.regexps:
-                result += f'(?={regexp})'
-        result += '"'
+                result.append(f'(?={regexp})')
+        result.append('"')
 
         if self.full_match:
-            result += f', fullmatch={self.full_match}'  # noqa
+            result.append(f', fullmatch={self.full_match}')  # noqa
 
-        result += ')'
+        result.append(')')
 
         for f in self.filters:
             free_variables = [self.var_id]
             free_variables.extend(f[1])
-            result += f'.filter(lambda {", ".join(free_variables)}: {f[0]})'
+            result.append(f'.filter(lambda {", ".join(free_variables)}: {f[0]})')
 
-        return result
+        return "".join(result)
 
 
-##################
-# IMPLEMENTATION #
-##################
+##
+# IMPLEMENTATION
+##
 
 
 def generate_strategies(table: Table):
-    strategies: Dict[str, Union[SymbolicIntegerStrategy, SymbolicTextStrategy, SymbolicFromRegexStrategy]] = dict()
+    strategies: Dict[str, Union[SymbolicStrategy]] = dict()
     for row in table.get_rows():
         if row.kind == Kind.BASE:
             strategies[row.var_id] = _infer_strategy(row)

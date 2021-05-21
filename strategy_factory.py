@@ -99,8 +99,13 @@ def func(n1: int, n2: int, n3: int, n4: int, s: str, lst: List[int]) -> None:
 def func_2(lst: List[int]):
     pass
 
+import regex as re
+
+@require(lambda lst: all(re.match(r'test', lst)))
+def func_3(lst: List[str]):
+    pass
+
 
 if __name__ == '__main__':
-    strategy_factory = StrategyFactory(func_2)
-    strategy_factory.debug_table()
+    strategy_factory = StrategyFactory(func_3)
     print(strategy_factory.generate_composite_strategy())

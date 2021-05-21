@@ -1,0 +1,7 @@
+@hypothesis.strategies.composite
+def strategy_existential_1(draw) -> Tuple[List[int]]:
+    lst = draw(hypothesis.strategies.lists(
+        elements=hypothesis.strategies.integers()
+    ))
+    assume(any(item <= 0 for item in lst))
+    return lst

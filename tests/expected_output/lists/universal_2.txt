@@ -1,0 +1,9 @@
+@hypothesis.strategies.composite
+def strategy_universal_2(draw) -> Tuple[List[str]]:
+    lst = draw(hypothesis.strategies.lists(
+        elements=hypothesis.strategies.from_regex(
+            regex=r'test',
+            fullmatch=True
+        )
+    ))
+    return lst

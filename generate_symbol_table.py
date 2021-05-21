@@ -505,14 +505,15 @@ def generate_and_print_table(func: CallableT) -> None:
 def generate_dag_from_table(table: Table) -> nx.DiGraph:
     graph = nx.DiGraph()
     for row in table.get_rows():
-        var_id = row.var_id
-        if not graph.has_node(var_id):
-            graph.add_node(var_id)
-        dependencies = row.get_dependencies()
-        for dependency in dependencies:
-            if not graph.has_node(dependency):
-                graph.add_node(dependency)
-            graph.add_edge(var_id, dependency)
+        if row.kind == Kind.BASE:
+            var_id = row.var_id
+            if not graph.has_node(var_id):
+                graph.add_node(var_id)
+            dependencies = row.get_dependencies()
+            for dependency in dependencies:
+                if not graph.has_node(dependency):
+                    graph.add_node(dependency)
+                graph.add_edge(var_id, dependency)
     return graph
 
 

@@ -1,5 +1,6 @@
 import abc
 
+import networkx as nx
 from hypothesis.strategies._internal.strategies import Ex
 from icontract import require, ensure
 import typing
@@ -15,6 +16,7 @@ import itertools
 
 
 class SymbolicStrategy:
+
     @abc.abstractmethod
     def represent(self) -> str:
         ...
@@ -107,7 +109,7 @@ class SymbolicFromRegexStrategy(SymbolicStrategy):
     filters: Sequence[Tuple[str, Set[str]]]
 
     def represent(self):
-        result = [f'hypothesis.strategies..from_regex(regex=r"']
+        result = [f'hypothesis.strategies.from_regex(regex=r"']
         if len(self.regexps) == 0:
             result.append('.*')
         elif len(self.regexps) == 1:
@@ -173,16 +175,41 @@ class SymbolicListStrategy(SymbolicStrategy):
 
 
 def generate_strategies(table: generate_symbol_table.Table):
-    strategies: Dict[str, Union[SymbolicStrategy]] = dict()
+    # variable identifier ->  strategy how to generte the identifier
+    strategies: Dict[str, SymbolicStrategy] = dict()
+
     for row in table.get_rows():
         if row.kind == generate_symbol_table.Kind.BASE:
             strategies[row.var_id] = _infer_strategy(row, table)
-    # for other_row in table.get_rows():
-    #     if other_row.kind == generate_symbol_table.Kind.LINK:
-    #         parent_var_id = other_row.parent
-    #         parent_strategy = strategies[parent_var_id]
-    #         # TODO what with lists??
-    #         strategies[parent_var_id] = _infer_link_strategy(parent_strategy, other_row, table)
+    # TODO fix dependencies
+    for strategy_id, strategy in strategies.items():
+        if isinstance(strategy, SymbolicIntegerStrategy):
+            for k, v_ids in table.get_dependencies(table.get_row_by_var_id(strategy_id)).items():
+                for v_id in v_ids:
+                    v = strategies[v_id]
+                    if isinstance(v, SymbolicIntegerStrategy):
+                        new_min_constraints = list(v.min_value)
+                        new_max_constraints = list(v.max_value)
+                        # TODO this is not correct
+                        if k == '>':
+                            new_min_constraints.extend([
+                                str(int(arg) - 1) if isinstance(arg, int) or arg.isnumeric() else f'{arg}-1'
+                                for arg in strategy.min_value
+                            ])
+                        elif k == '>=':
+                            new_max_constraints.extend(strategy.max_value)
+                        elif k == '<':
+                            new_min_constraints.extend([
+                                str(int(arg) + 1) if isinstance(arg, int) or arg.isnumeric() else f'{arg}+1'
+                                for arg in strategy.min_value
+                            ])
+                        elif k == '<=':
+                            new_min_constraints.extend(strategy.min_value)
+                        new_v = SymbolicIntegerStrategy(var_id=v.var_id,
+                                                        min_value=new_min_constraints,
+                                                        max_value=new_max_constraints,
+                                                        filters=v.filters)
+                        strategies[v.var_id] = new_v
     return strategies
 
 
@@ -249,11 +276,10 @@ def _infer_int_strategy(row: generate_symbol_table.Row,
                                    max_value=max_value_constraints,
                                    filters=filters)
 
-
+# TODO (mristin): Capitalize the titles (not upper-case)
 ##
-# STRINGS
+# Strings
 ##
-
 
 def _infer_text_strategy(row: generate_symbol_table.Row,
                          table: generate_symbol_table.Table) -> SymbolicTextStrategy:
@@ -285,6 +311,10 @@ def _infer_text_strategy(row: generate_symbol_table.Row,
             link_property = row.var_id[len(row.parent) + 1:]
             if link_property == 'len':
                 if row_property == '<':
+                    # TODO (mristin): use ast.Expr pick a minor use case; see how it goes. --> parentheses are a nightmare.
+                    # TODO (mristin): introduce two functions: increment(ast.Expression), decrement(ast.Expression) -> ast.Expression
+                    # TODO (mristin):   optimize for constants in that function
+                    # TODO (mristin): Operator precedence with -1 --> you need to put parentheses!
                     args = [int(arg) - 1 if arg.isnumeric() else f'{arg}-1' for arg in args]
                     max_size.extend(args)
                 elif row_property == '<=':
@@ -302,6 +332,8 @@ def _infer_text_strategy(row: generate_symbol_table.Row,
             filter_args = ", ".join(args)
             if row.var_id in free_vars:  # s.func(..)
                 filters.append((f"{row.var_id}.{row_property}({filter_args})", free_vars))
+            elif not free_vars:
+                filters.append((f"{row.var_id}.{row_property}()", free_vars))
             else:  # func(..s..)  TODO does this actually occur?
                 filters.append((f"{row_property}({filter_args})", free_vars))
             # TODO add row property as filter
@@ -406,6 +438,7 @@ def _infer_from_regex_strategy(row: generate_symbol_table.Row,
                 filters.append((f"{row.var_id}.{row_property}({filter_args})", free_vars))
             else:  # func(..s..)  TODO does this actually occur?
                 filters.append((f"{row_property}({filter_args})", free_vars))
+
     for link_row in table.get_rows():
         if link_row.parent == row.var_id and link_row.kind == generate_symbol_table.Kind.LINK:
             link_strategy = _infer_from_regex_strategy(link_row, table)
@@ -414,6 +447,7 @@ def _infer_from_regex_strategy(row: generate_symbol_table.Row,
             min_size.extend(link_strategy.min_size)
             max_size.extend(link_strategy.max_size)
             filters.extend(link_strategy.filters)
+
     return SymbolicFromRegexStrategy(var_id=row.var_id,
                                      regexps=regexps,
                                      full_match=full_match,
@@ -426,6 +460,8 @@ def _infer_from_regex_strategy(row: generate_symbol_table.Row,
 # LISTS
 ##
 
+# TODO: "nesting" also needs to apply for all the iterable types (sets, dictionaries, ordered dictionaries...)
+
 def _infer_list_strategy(row: generate_symbol_table.Row, table: generate_symbol_table.Table) -> SymbolicListStrategy:
     elements: Optional[SymbolicStrategy] = None
     min_size: List[Union[int, str]] = []
@@ -434,13 +470,12 @@ def _infer_list_strategy(row: generate_symbol_table.Row, table: generate_symbol_
     unique: bool = False
     filters: List[Tuple[str, Set[str]]] = []
 
-    # TODO
     for other_row in table.get_rows():
         if other_row.parent == row.var_id:
             if other_row.kind == generate_symbol_table.Kind.LINK:
                 link_property = other_row.var_id[len(other_row.parent) + 1:]
-                row_properties = other_row.properties
-                for row_property, (args, free_vars) in row_properties.items():
+
+                for row_property, (args, free_vars) in other_row.properties.items():
                     if link_property == 'len':
                         if row_property == '<':
                             max_size.extend([
@@ -451,7 +486,6 @@ def _infer_list_strategy(row: generate_symbol_table.Row, table: generate_symbol_
                             max_size.extend(args)
                         elif row_property == '>':
                             min_size.extend([
-                                # str(int(arg) + 1) if arg.isnumeric() else f'{arg}+1'
                                 str(int(arg) + 1) if isinstance(arg, int) or arg.isnumeric() else f'{arg}+1'
                                 for arg in args
                             ])
@@ -506,75 +540,6 @@ def _strategy_from_type(strategy_type: typing.Type) -> SymbolicStrategy:
                                     filters=[])
     else:
         raise NotImplementedError(strategy_type)
-
-
-##
-# LINK
-##
-
-# TODO remove
-# @ensure(lambda parent_strategy, result: type(parent_strategy) == type(result))
-# def _infer_link_strategy(parent_strategy: [SymbolicStrategy],
-#                          link_row: generate_symbol_table.Row,
-#                          table: generate_symbol_table.Table) -> SymbolicStrategy:
-#     if isinstance(parent_strategy, SymbolicIntegerStrategy):
-#         link_strategy = _infer_int_strategy(link_row)
-#         # TODO better way to concatenate two sequences?
-#         new_min_value = list(itertools.chain.from_iterable([parent_strategy.min_value, link_strategy.min_value]))
-#         new_max_value = list(itertools.chain.from_iterable([parent_strategy.max_value, link_strategy.max_value]))
-#         new_filters = list(itertools.chain.from_iterable([parent_strategy.filters, link_strategy.filters]))
-#         return SymbolicIntegerStrategy(var_id=parent_strategy.var_id,
-#                                        min_value=new_min_value,
-#                                        max_value=new_max_value,
-#                                        filters=new_filters)
-#     elif isinstance(parent_strategy, SymbolicTextStrategy):
-#         link_strategy = _infer_text_strategy(link_row)
-#         new_blacklist_categories = list(itertools.chain.from_iterable([parent_strategy.blacklist_categories,
-#                                                                        link_strategy.blacklist_categories]))
-#         new_whitelist_categories = list(itertools.chain.from_iterable([parent_strategy.whitelist_categories,
-#                                                                        link_strategy.whitelist_categories]))
-#         new_min_size = list(itertools.chain.from_iterable([parent_strategy.min_size,
-#                                                            link_strategy.min_size]))
-#         new_max_size = list(itertools.chain.from_iterable([parent_strategy.max_size,
-#                                                            link_strategy.max_size]))
-#         new_filters = list(itertools.chain.from_iterable([parent_strategy.filters,
-#                                                           link_strategy.filters]))
-#         return SymbolicTextStrategy(var_id=parent_strategy.var_id,
-#                                     blacklist_categories=new_blacklist_categories,
-#                                     whitelist_categories=new_whitelist_categories,
-#                                     min_size=new_min_size,
-#                                     max_size=new_max_size,
-#                                     filters=new_filters)
-    # elif isinstance(parent_strategy, SymbolicFromRegexStrategy):
-    #     link_strategy = _infer_from_regex_strategy(link_row)
-    #     new_regexps = list(itertools.chain.from_iterable([parent_strategy.regexps, link_strategy.regexps]))
-    #     new_full_match = parent_strategy.full_match or link_strategy.full_match
-    #     new_min_size = list(itertools.chain.from_iterable([parent_strategy.min_size, link_strategy.min_size]))
-    #     new_max_size = list(itertools.chain.from_iterable([parent_strategy.max_size, link_strategy.max_size]))
-    #     new_filters = list(itertools.chain.from_iterable([parent_strategy.filters, link_strategy.filters]))
-    #     return SymbolicFromRegexStrategy(var_id=parent_strategy.var_id,
-    #                                      regexps=new_regexps,
-    #                                      full_match=new_full_match,
-    #                                      min_size=new_min_size,
-    #                                      max_size=new_max_size,
-    #                                      filters=new_filters)
-    # elif isinstance(parent_strategy, SymbolicListStrategy):
-    #     link_strategy = _infer_list_strategy(link_row, table)
-    #     new_elements = link_strategy.elements
-    #     new_min_size = list(itertools.chain.from_iterable([parent_strategy.min_size, link_strategy.min_size]))
-    #     new_max_size = list(itertools.chain.from_iterable([parent_strategy.max_size, link_strategy.max_size]))
-    #     new_unique_by = list(itertools.chain.from_iterable([parent_strategy.unique_by, link_strategy.unique_by]))
-    #     new_unique = parent_strategy.unique or link_strategy.unique
-    #     new_filters = list(itertools.chain.from_iterable([parent_strategy.filters, link_strategy.filters]))
-    #     return SymbolicListStrategy(var_id=parent_strategy.var_id,
-    #                                 elements=new_elements,
-    #                                 min_size=new_min_size,
-    #                                 max_size=new_max_size,
-    #                                 unique_by=new_unique_by,
-    #                                 unique=new_unique,
-    #                                 filters=new_filters)
-    # else:
-    #     raise NotImplementedError
 
 
 # region Description

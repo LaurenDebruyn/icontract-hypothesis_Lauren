@@ -1,8 +1,8 @@
 @hypothesis.strategies.composite
 def strategy_universal_1(draw) -> Tuple[List[int]]:
-    lst = draw(hypothesis.strategies.lists(
-        elements=hypothesis.strategies.integers(
-            min_value=1
+    lst = draw(
+        hypothesis.strategies.lists(
+            elements=hypothesis.strategies.integers(min_value=1)
         )
-    ))
+    )
     return lst

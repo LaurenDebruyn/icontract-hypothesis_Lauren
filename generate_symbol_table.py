@@ -33,6 +33,8 @@ class Row:
     type: typing.Type
     function: str
     parent: Optional['str']
+    # TODO: introduce a Property as a class
+    # TODO: use ordered dict? or something deterministic?
     properties: Dict[str, Tuple[Set[Union[str, Tuple[str, ...]]], Set[str]]] = field(
         default_factory=dict)  # operator : (arguments, vars)
 
@@ -58,10 +60,15 @@ class Row:
                 for p in property_set:
                     self.add_property(op, p, variables)
 
-    def get_dependencies(self) -> Set[str]:
-        dependencies: Set[str] = set()
-        for p in self.properties.values():
-            dependencies = dependencies.union(p[1])
+    def get_dependencies(self) -> Dict[str, Set[str]]:
+        dependencies: Dict[str, Set[str]] = dict()
+        # for p in self.properties.values():
+        #    dependencies = dependencies.union(p[1])
+        for row_property, (_, free_vars) in self.properties.items():
+            if row_property not in dependencies:
+                dependencies[row_property] = set()
+            dependencies[row_property] = dependencies[row_property].union(free_vars)
+
         return dependencies
 
 
@@ -80,6 +87,18 @@ class Table:
     @require(lambda self, index: 0 <= index < len(self._rows))
     def get_row_by_index(self, index: int) -> Row:
         return self._rows[index]
+
+    def get_children(self, row: Row) -> List[Row]:
+        return [child_row for child_row in self._rows if child_row.parent == row.var_id]
+
+    def get_dependencies(self, row: Row) -> Dict[str, Set[str]]:
+        dependencies = row.get_dependencies()
+        for child_row in self.get_children(row):
+            for child_row_property, child_free_vars in self.get_dependencies(child_row).items():
+                if child_row_property not in dependencies:
+                    dependencies[child_row_property] = set()
+                dependencies[child_row_property] = dependencies[child_row_property].union(child_free_vars)
+        return dependencies
 
     def add_row(self, row: Row) -> None:
         existing_row = self.get_row_by_var_id(row.var_id)
@@ -340,7 +359,7 @@ def parse_universal_quantifier(expr: ast.Call, condition: Callable[..., Any], fu
             function_args_hints[target.id] = typing.get_args(function_args_hints[it.id])[0]
         else:
             function_args_hints[target.id] = function_args_hints[it.id]
-    elif isinstance(it, ast.Call) and isinstance(it.func, ast.Attribute):  # Is this a correct assumption
+    elif isinstance(it, ast.Call) and isinstance(it.func, ast.Attribute):  # TODO Is this a correct assumption
         value = it.func.value
         while isinstance(value, ast.Attribute):
             value = value.value
@@ -407,7 +426,8 @@ def parse_universal_quantifier(expr: ast.Call, condition: Callable[..., Any], fu
     for row in rows:
         if row.kind not in [Kind.UNIVERSAL_QUANTIFIER, Kind.EXISTENTIAL_QUANTIFIER]:
             row.kind = Kind.LINK
-        row.parent = quantifier_row.var_id
+        else:
+            row.parent = quantifier_row.var_id
 
     rows.insert(0, quantifier_row)
 
@@ -479,6 +499,17 @@ def generate_symbol_table(func: CallableT) -> Tuple[List[Tuple[ast.AST, Optional
                             failed_contracts.append((body, e.message))
                         else:
                             failed_contracts.append((body, ''))
+
+    # TODO fix dependencies
+    # dependency_graph = generate_dag_from_table(table)
+    # for row_id in nx.topological_sort(dependency_graph):
+    #     row = table.get_row_by_var_id(row_id)
+    #     if isinstance(strategy, SymbolicIntegerStrategy): dependent_strategies = [
+    #             strategies[dependent_strategy_id]
+    #             for dependent_strategy_id in dependency_graph.neighbors(strategy_id)
+    #         ]
+    #         for dependent_strategy in dependent_strategies:
+    #             if dependent_strategy.var_id in strategy.
     return failed_contracts, table
 
 
@@ -509,11 +540,14 @@ def generate_dag_from_table(table: Table) -> nx.DiGraph:
             var_id = row.var_id
             if not graph.has_node(var_id):
                 graph.add_node(var_id)
-            dependencies = row.get_dependencies()
+            dependencies = []
+            for d in table.get_dependencies(row).values():
+                dependencies.extend(d)
             for dependency in dependencies:
                 if not graph.has_node(dependency):
                     graph.add_node(dependency)
                 graph.add_edge(var_id, dependency)
+                # TODO add edge labels (possibly also change return type)
     return graph
 
 
@@ -652,34 +686,3 @@ def _recompute(condition: Callable[..., Any], node: ast.expr) -> Tuple[Any, bool
         return recompute_visitor.recomputed_values[node], True
 
     return None, False
-
-
-############
-# EXAMPLES #
-############
-
-
-@require(lambda n1: len(n1) > 10)
-def example_function(n1: int) -> None:
-    pass
-
-
-@require(lambda n1: n1 % 2 == 0)
-@require(lambda n1, n2: n2 > 0 if n1 < 0 else True)
-def another_example_function(n1: int, n2: int) -> None:
-    pass
-
-
-@require(lambda lst: all(item > 0 for item in lst if item < 100))
-def another_another_example_function(lst: List[int]) -> None:
-    pass
-
-
-@require(lambda s: sorted(s))
-def some_func(s: str) -> None:
-    pass
-
-
-if __name__ == '__main__':
-    print("\n\nexample 1:\n")
-    generate_and_print_table(some_func)

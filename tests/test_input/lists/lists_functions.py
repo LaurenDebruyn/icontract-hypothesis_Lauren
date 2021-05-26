@@ -36,3 +36,8 @@ def universal_nested_link_1(lst: List[List[int]]):
 @require(lambda lst: all(s.isidentifier() for s in lst))
 def universal_filter_1(lst: List[str]):
     pass
+
+
+@require(lambda lst: all(all(len(sub_sub_list) > 2 for sub_sub_list in sub_list) for sub_list in lst))
+def universal_nested_link_2(lst: List[List[List[int]]]):
+    pass

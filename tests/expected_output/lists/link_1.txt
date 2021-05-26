@@ -1,7 +1,8 @@
 @hypothesis.strategies.composite
 def strategy_link_1(draw) -> Tuple[List[int]]:
-    lst = draw(hypothesis.strategies.lists(
-        elements=hypothesis.strategies.integers(),
-        min_size=1
-    ))
+    lst = draw(
+        hypothesis.strategies.lists(
+            elements=hypothesis.strategies.integers(), min_size=1
+        )
+    )
     return lst

@@ -1,6 +1,8 @@
 @hypothesis.strategies.composite
-def strategy_universal_filter_1(draw) -> Tuple[str]:
-    lst = draw(hypothesis.strategies.lists(
-        elements=hypothesis.strategies.text().filter(lambda s: s.isidentifier())
-    ))
+def strategy_universal_filter_1(draw) -> Tuple[List[str]]:
+    lst = draw(
+        hypothesis.strategies.lists(
+            elements=hypothesis.strategies.text().filter(lambda s: s.isidentifier())
+        )
+    )
     return lst

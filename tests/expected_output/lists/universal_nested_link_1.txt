@@ -1,9 +1,10 @@
 @hypothesis.strategies.composite
-def strategy_universal_nested_1(draw) -> Tuple[List[List[int]]]:
-    lst = draw(hypothesis.strategies.lists(
-        elements=hypothesis.strategies.lists(
-            elements=hypothesis.strategies.integers(),
-            min_size=3
+def strategy_universal_nested_link_1(draw) -> Tuple[List[List[int]]]:
+    lst = draw(
+        hypothesis.strategies.lists(
+            elements=hypothesis.strategies.lists(
+                elements=hypothesis.strategies.integers(), min_size=3
+            )
         )
-    ))
+    )
     return lst

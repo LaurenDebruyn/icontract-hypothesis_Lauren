@@ -118,4 +118,7 @@ We will start from these rows and incorporate the other rows recursively.
 ## Specifying specific examples
 [Hypothesis - reproducing failures](https://hypothesis.readthedocs.io/en/latest/reproducing.html)
 
+## Quantifiers for strings
+* would technically be possible to allow quantifiers for strings
+
 

@@ -27,3 +27,8 @@ def base_3(n1: int, n2: int, n3: int):
 @require(lambda n2, n3: n2 <= 100 and n3 <= n2)
 def base_4(n1: int, n2: int, n3: int):
     pass
+
+
+@require(lambda n1, n2: (n1, n2) > (0, 0))
+def base_5(n1: int, n2: int):
+    pass

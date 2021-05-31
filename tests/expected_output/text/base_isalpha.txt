@@ -1,0 +1,8 @@
+@hypothesis.strategies.composite
+def strategy_base_isalpha(draw) -> Tuple[str]:
+    s = draw(
+        hypothesis.strategies.text(
+            alphabet=hypothesis.strategies.characters(whitelist_categories=("Ll", "Lu"))
+        )
+    )
+    return s

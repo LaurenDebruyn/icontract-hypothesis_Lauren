@@ -230,7 +230,8 @@ def represent_property_argument(property_argument: PropertyArgument) -> str:
         argument_item_str = astor.to_source(argument_item).strip()
         if re.match(r'\"\"\"(.*)\"\"\"', argument_item_str):
             regex = re.search(r'\"\"\"(.*)\"\"\"', argument_item_str).group(1)
-            argument_item_str = re.sub(r'\"\"\"(.*)\"\"\"', f'r\'{regex}\'', argument_item_str)
+            # argument_item_str = re.sub(r'\"\"\"(.*)\"\"\"', f'r\'{regex}\'', argument_item_str)
+            argument_item_str = re.sub(r'\"\"\"(.*)\"\"\"', f'{regex}', argument_item_str)
         # remove unnecessary parentheses around numbers
         if re.match(r'^\(.*\)$', argument_item_str) and argument_item_str[1:-1].isnumeric():
             argument_item_str = argument_item_str[1:-1]
@@ -271,7 +272,7 @@ class Row:
     function: str
     parent: Optional['str']
     # TODO (mristin): use ordered dict? or something deterministic?
-    properties: OrderedDict[str, Property]
+    properties: Dict[str, Property]
 
     def __repr__(self) -> str:
         return f'{self.var_id}\t{self.kind}\t{self.type}\t{self.function}' \

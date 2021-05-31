@@ -1,0 +1,9 @@
+@hypothesis.strategies.composite
+def strategy_link(draw) -> Tuple[Tuple[int, int]]:
+    t = draw(
+        hypothesis.strategies.tuples(
+            hypothesis.strategies.integers(min_value=1),
+            hypothesis.strategies.integers(max_value=-1),
+        )
+    )
+    return t

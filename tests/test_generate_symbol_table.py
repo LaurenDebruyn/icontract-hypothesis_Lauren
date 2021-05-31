@@ -87,10 +87,6 @@ def expected_table_example_function_5() -> str:
 TEST_RE = re.compile(r'.*')
 
 
-def dummy_func_6(x: Any) -> List:
-    pass
-
-
 @require(lambda batch: all(TEST_RE.match(line) for line in batch))
 def example_function_6(batch: List[str]):
     pass

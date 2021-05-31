@@ -363,7 +363,7 @@ def _infer_from_regex_strategy(row: generate_symbol_table.Row,
             # re.match(r'..', s), we only want the first argument and we don't want any leading/ending \'
             # regexps.extend([arg[0].strip("\'") for arg in represent_property_arguments(row_property)])
             regexps.extend(
-                [arg.split(',')[0][3:-1] for arg in represent_property_arguments(row_property)])  # TODO better way?
+                [arg.split(',')[0][1:] for arg in represent_property_arguments(row_property)])  # TODO better way?
             full_match = True
         elif property_identifier == 'contains' or property_identifier == 'in':
             regexps.extend([arg.strip("\'") for arg in represent_property_arguments(row_property)])

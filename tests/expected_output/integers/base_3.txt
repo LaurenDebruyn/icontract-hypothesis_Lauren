@@ -2,5 +2,5 @@
 def strategy_base_3(draw) -> Tuple[int, int, int]:
     n2 = draw(hypothesis.strategies.integers(min_value=2, max_value=100))
     n3 = draw(hypothesis.strategies.integers(max_value=min(n2, n2 - 1)))
-    n1 = draw(hypothesis.strategies.integers(min_value=max(1, n3), max_value=n2 - 1))
+    n1 = draw(hypothesis.strategies.integers(min_value=max(1, n3), max_value=(n2 - 1)))
     return n1, n2, n3

@@ -1,0 +1,9 @@
+@hypothesis.strategies.composite
+def strategy_universal_values(draw) -> Tuple[Dict[int, int]]:
+    d = draw(
+        hypothesis.strategies.dictionaries(
+            keys=hypothesis.strategies.integers(),
+            values=hypothesis.strategies.integers(min_value=1)
+        )
+    )
+    return d

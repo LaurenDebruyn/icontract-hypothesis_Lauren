@@ -1,0 +1,5 @@
+@hypothesis.strategies.composite
+def strategy_base_5(draw) -> Tuple[int, int]:
+    n1 = draw(hypothesis.strategies.integers(min_value=1))
+    n2 = draw(hypothesis.strategies.integers(min_value=1))
+    return n1, n2

@@ -49,6 +49,9 @@
     * -> can all be rewritten (I assume)
 * dictionaries
     * everything that is not covered in [What is supported?](#what-is-supported)
+* functions/methods with more than one variable
+    * re.match(regex_str, s)
+    * s.startswith(s2)
 ### What do I still want to support if I have enough time?
 * Dictionaries with different key and value type
 ### Which types are supported?
@@ -121,4 +124,58 @@ We will start from these rows and incorporate the other rows recursively.
 ## Quantifiers for strings
 * would technically be possible to allow quantifiers for strings
 
+# Other stuff
 
+## Identifying properties
+
+### Extensibility
+
+It should be relatively easy to add support for new properties.
+New links between identifiers, and their impact on strategies should be easily added.
+I still have to figure out how this could be done.
+
+### Shadowing
+
+Properties are now identified by operators and/or function and method names.
+Problem is that these are not unique.
+We should introduce some way of connecting these functions to the correct modules.
+
+
+## Quantifiers - (un)supported syntax
+
+An overview of what cases we deliberately support and not support.
+
+### Different comprehensions
+
+1. (singular) variable
+   Supported:
+    1. list[..]
+    2. dict[.., ..]
+    3. tuple[..,] (all the same type)
+    
+   Not supported:
+    3. tuple[..,..,] (different types combined)
+    4. str
+    5. all the rest (implicitly)
+2. method/built-in call  
+   Supported:
+    1. dict.keys()
+    2. dict.values()
+    3. dict.items()
+    4. str.split(..)
+    
+   Not supported:
+    5. all the rest (implicitly)
+3. function call
+   Supported:
+    1. zip(..,)
+    
+   Not Supported
+    2. enumerate(..)
+    3. all the rest (implicitly)
+    
+4. nested comprehensions
+   Same functionality as above but nested.
+   2 ways that you can nest functions:
+    * all(all(predicate for item in sub_list) for sub_list in list)
+    * all(predicate for sub_list in list for item in sub_lst)

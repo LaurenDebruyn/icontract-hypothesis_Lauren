@@ -1,29 +1,246 @@
 import inspect
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Set, Tuple, Iterable, TypeVar, Callable, Any, cast, Union
 import typing
 from enum import Enum
 import ast
-from icontract import require
+from icontract import require, DBC
 import icontract
 from tabulate import tabulate
 import astunparse
 import networkx as nx
+import regex as re
+import astor
 
 # Shamelessly stolen from icontract
 CallableT = TypeVar('CallableT', bound=Callable[..., Any])
 
+# TODO introduce code regions
+
+##
+# Exceptions
+##
+
+class GenerationError(Exception):
+
+    def __init__(self, expr: ast.expr, message: str = "An error has occurred during generation of property table"):
+        self.expr = expr
+        self.message = message
+        super().__init__(self.message)
+
+
+##
+# Properties
+##
+
+@dataclass
+class Lambda(DBC):
+    free_variables: List[str]
+    condition: str
+
+    def __repr__(self):
+        free_variables_str = ", ".join(self.free_variables)
+        return f"lambda {free_variables_str}: {self.condition}"
+
+
+@dataclass
+class PropertyArgument(DBC):
+    argument: Tuple[ast.expr, ...]
+    free_variables: List[str]
+
+
+@dataclass
+class Property(DBC):
+    identifier: ast.expr
+    property_arguments: List[PropertyArgument]
+    left_function_call: Optional[str]
+    var_id: str
+    is_routine: bool
+    var_is_caller: bool
+
+    def arguments(self) -> List[Tuple[ast.expr, ...]]:
+        return [property_argument.argument for property_argument in self.property_arguments]
+
+    def free_variables(self) -> List[str]:
+        free_variables = list()
+        for property_argument in self.property_arguments:
+            free_variables.extend(property_argument.free_variables)
+        return list(OrderedDict.fromkeys(free_variables))
+
+    def __repr__(self) -> str:
+        return represent_property(self)
+
+
+def add_property_arguments_to_property(prop: Property, property_arguments: List[PropertyArgument]) -> 'Property':
+    new_property_arguments = property_arguments
+    new_property_arguments.extend(prop.property_arguments)
+    return Property(identifier=prop.identifier,
+                    property_arguments=new_property_arguments,
+                    left_function_call=prop.left_function_call,
+                    var_id=prop.var_id,
+                    is_routine=prop.is_routine,
+                    var_is_caller=prop.var_is_caller)
+
+
+def increment_property(prop: Property) -> Property:
+    new_property_arguments = []
+    for property_argument in prop.property_arguments:
+        new_property_arguments.append(PropertyArgument((ast.BinOp(property_argument.argument[0], ast.Add(),  # noqa
+                                                                  ast.Constant(1, lineno=0, col_offset=0, kind=None),
+                                                                  lineno=0, col_offset=0, kind=None),),
+                                                       property_argument.free_variables))
+
+    return Property(identifier=prop.identifier,
+                    property_arguments=new_property_arguments,
+                    left_function_call=prop.left_function_call,
+                    var_id=prop.var_id,
+                    is_routine=prop.is_routine,
+                    var_is_caller=prop.var_is_caller)
+
+
+def decrement_property(prop: Property) -> Property:
+    new_property_arguments = []
+    for property_argument in prop.property_arguments:
+        new_property_arguments.append(PropertyArgument((ast.BinOp(property_argument.argument[0], ast.Sub(),  # noqa
+                                                                  ast.Constant(1, lineno=0, col_offset=0, kind=None),
+                                                                  lineno=0, col_offset=0, kind=None),),
+                                                       property_argument.free_variables))
+    return Property(identifier=prop.identifier,
+                    property_arguments=new_property_arguments,
+                    left_function_call=prop.left_function_call,
+                    var_id=prop.var_id,
+                    is_routine=prop.is_routine,
+                    var_is_caller=prop.var_is_caller)
+
+
+def represent_property_identifier(prop: Property) -> str:
+    if isinstance(prop.identifier, ast.operator) or isinstance(prop.identifier, ast.cmpop):
+        identifier_str = visualize_operator(prop.identifier)
+    elif isinstance(prop.identifier, ast.Attribute):
+        identifier = prop.identifier
+        result = []
+        while isinstance(identifier, ast.Attribute):
+            result.append(identifier.attr)
+            identifier = identifier.value
+        if not prop.var_is_caller:
+            assert isinstance(identifier, ast.Name)
+            result.insert(0, identifier.id)
+        identifier_str = ".".join(result)
+    else:
+        identifier_str = _visualize_expression(prop.identifier)
+    return identifier_str
+
+
+def property_as_lambdas(prop: Property) -> List[Lambda]:
+    identifier_str = represent_property_identifier(prop)
+
+    var_id_str = prop.var_id
+    if prop.left_function_call:
+        var_id_str = f"{prop.left_function_call}({var_id_str})"
+
+    arguments_str_list = []
+    for property_argument in prop.property_arguments:
+        argument_item_str_list = []
+        for argument_item in property_argument.argument:
+            argument_item_str = astor.to_source(argument_item).strip()
+            if re.match(r'\"\"\"(.*)\"\"\"', argument_item_str):
+                regex = re.search(r'\"\"\"(.*)\"\"\"', argument_item_str).group(1)
+                argument_item_str = re.sub(r'\"\"\"(.*)\"\"\"', f'r\'{regex}\'', argument_item_str)
+            argument_item_str_list.append(argument_item_str)
+        arguments_str_list.append(", ".join(argument_item_str_list))
+
+    if prop.is_routine:
+        if prop.var_is_caller:
+            if prop.property_arguments:
+                result = [
+                    f"{var_id_str}.{identifier_str}({comparator_str})"
+                    for comparator_str in arguments_str_list
+                ]
+            else:
+                result = [f"{var_id_str}.{identifier_str}()"]
+        else:
+            if prop.property_arguments:
+                result = [
+                    f"{identifier_str}({comparator_str})"
+                    for comparator_str in arguments_str_list
+                ]
+            else:
+                raise Exception  # TODO
+    else:
+        if prop.property_arguments:
+            result = [
+                f"{var_id_str} {identifier_str} {comparator_str}"
+                for comparator_str in arguments_str_list
+            ]
+        else:
+            raise Exception  # TODO
+
+    free_variables_list = [
+        arg.free_variables if prop.var_id in arg.free_variables else arg.free_variables + [prop.var_id]
+        for arg in prop.property_arguments
+    ]
+
+    # TODO this can be done better
+    if free_variables_list:
+        return [
+            Lambda(free_variables, condition)
+            for free_variables, condition in zip(free_variables_list, result)
+        ]
+    return [
+        Lambda([prop.var_id], condition)
+        for condition in result
+    ]
+
+
+def represent_property(prop: Property) -> str:
+    arguments_str_list = []
+    for property_argument in prop.property_arguments:
+        argument_item_str_list = []
+        for argument_item in property_argument.argument:
+            argument_item_str = astor.to_source(argument_item).strip()
+            if re.match(r'\"\"\"(.*)\"\"\"', argument_item_str):
+                regex = re.search(r'\"\"\"(.*)\"\"\"', argument_item_str).group(1)
+                argument_item_str = re.sub(r'\"\"\"(.*)\"\"\"', f'r\'{regex}\'', argument_item_str)
+            argument_item_str_list.append(argument_item_str)
+        if argument_item_str_list:
+            arguments_str_list.append("(" + ", ".join(argument_item_str_list) + ",)")
+
+    if arguments_str_list:
+        argument_item_str = "{" + ", ".join(arguments_str_list) + "}"
+    else:
+        argument_item_str = ""
+
+    free_variables_list = []
+    for arg in prop.property_arguments:
+        free_variables_list.extend(arg.free_variables)
+    free_variables_list_unique = list(OrderedDict.fromkeys(free_variables_list))
+
+    if argument_item_str and free_variables_list_unique:
+        free_variables_list_str = "{" + ", ".join(free_variables_list_unique) + "}"
+        return f"({argument_item_str}, {free_variables_list_str})"
+    elif argument_item_str:
+        return f"({argument_item_str}, {set()})"
+    else:
+        return f"({set()}, {set()})"
+
+
+def represent_property_as_lambdas(prop: Property) -> str:
+    return ", ".join([
+        str(property_lambda)
+        for property_lambda in property_as_lambdas(prop)
+    ])
+
+
+##
+# Table
+##
 
 class Kind(Enum):
     BASE = 0
-    ATTRIBUTE = 1  # TODO remove?
     UNIVERSAL_QUANTIFIER = 2
-    DISJUNCTION = 3  # TODO remove?
     LINK = 4
     EXISTENTIAL_QUANTIFIER = 5
-
-    # def __eq__(self, other):
-    #     return self.name == other.name and self.value == other.value
 
 
 @dataclass
@@ -33,42 +250,34 @@ class Row:
     type: typing.Type
     function: str
     parent: Optional['str']
-    # TODO: introduce a Property as a class
-    # TODO: use ordered dict? or something deterministic?
-    properties: Dict[str, Tuple[Set[Union[str, Tuple[str, ...]]], Set[str]]] = field(
-        default_factory=dict)  # operator : (arguments, vars)
+    # TODO (mristin): use ordered dict? or something deterministic?
+    properties: Dict[str, Property]
 
     def __repr__(self) -> str:
         return f'{self.var_id}\t{self.kind}\t{self.type}\t{self.function}' \
                f'\t{self.parent}\t{self.properties}'
 
-    def add_property(self, op: str, comp: Union[str, Tuple[str, ...]], variables: Set[str]) -> None:
-        if op in self.properties.keys():
-            new_args = self.properties[op][0]
-            new_args.add(comp)
-            new_vars = self.properties[op][1]
-            new_vars = new_vars.union(variables)
-            self.properties[op] = (new_args, new_vars)
+    def add_property(self, prop: Property) -> None:
+        property_identifier = represent_property_identifier(prop)
+        if property_identifier in self.properties.keys():
+            self.properties[property_identifier] = add_property_arguments_to_property(
+                self.properties[property_identifier],
+                prop.property_arguments
+            )
         else:
-            self.properties[op] = ({comp}, variables)
+            self.properties[property_identifier] = prop
 
-    def add_properties(self, properties: Dict[str, Tuple[Set[str], Set[str]]]) -> None:
-        for op, (property_set, variables) in properties.items():
-            if isinstance(property_set, Tuple):
-                self.add_property(op, property_set, variables)
-            else:
-                for p in property_set:
-                    self.add_property(op, p, variables)
+    def add_properties(self, properties: List[Property]) -> None:
+        for prop in properties:
+            self.add_property(prop)
 
     def get_dependencies(self) -> Dict[str, Set[str]]:
+        """"Returns Dict[property_identifier, {variables on which the row depends}]"""
         dependencies: Dict[str, Set[str]] = dict()
-        # for p in self.properties.values():
-        #    dependencies = dependencies.union(p[1])
-        for row_property, (_, free_vars) in self.properties.items():
-            if row_property not in dependencies:
-                dependencies[row_property] = set()
-            dependencies[row_property] = dependencies[row_property].union(free_vars)
-
+        for property_identifier, prop in self.properties.items():
+            if property_identifier not in dependencies:
+                dependencies[property_identifier] = set()
+            dependencies[property_identifier] = dependencies[property_identifier].union(prop.free_variables())
         return dependencies
 
 
@@ -104,7 +313,7 @@ class Table:
         existing_row = self.get_row_by_var_id(row.var_id)
         # If row already exists (same id and corresponding function), the properties are added to the existing row.
         if existing_row and existing_row.function == row.function:
-            existing_row.add_properties(row.properties)
+            existing_row.add_properties(list(row.properties.values()))
         else:
             self._rows.append(row)
 
@@ -121,7 +330,7 @@ def extract_variables_from_expression(root: ast.expr, function_args_hints: Dict[
     return free_symbols
 
 
-def visualize_operation(op: Union[ast.operator, ast.cmpop]) -> str:
+def visualize_operator(op: Union[ast.operator, ast.cmpop]) -> str:
     if isinstance(op, ast.Gt):
         return '>'
     elif isinstance(op, ast.GtE):
@@ -147,19 +356,19 @@ def visualize_operation(op: Union[ast.operator, ast.cmpop]) -> str:
         return str(op)
 
 
-# TODO needs a better name
-def visualize_comparators(comp: ast.expr) -> str:
-    if isinstance(comp, ast.Name):
-        return comp.id
-    elif isinstance(comp, ast.Constant):
-        if isinstance(comp.value, str):
-            return "\"{}\"".format(comp.value.replace('\n', '\\ n'))
+# TODO better documentation
+def _visualize_expression(expr: ast.expr) -> str:
+    if isinstance(expr, ast.Name):
+        return expr.id
+    elif isinstance(expr, ast.Constant):
+        if isinstance(expr.value, str):
+            return "\"{}\"".format(expr.value.replace('\n', '\\ n'))
         else:
-            return str(comp.value)
-    elif isinstance(comp, ast.BinOp):
-        return f'{visualize_comparators(comp.left)} {visualize_operation(comp.op)} {visualize_comparators(comp.right)}'
-    elif isinstance(comp, ast.Call):
-        func = comp.func
+            return str(expr.value)
+    elif isinstance(expr, ast.BinOp):
+        return f'{_visualize_expression(expr.left)} {visualize_operator(expr.op)} {_visualize_expression(expr.right)}'
+    elif isinstance(expr, ast.Call):
+        func = expr.func
 
         if isinstance(func, ast.Attribute):
             result = func.attr
@@ -169,9 +378,12 @@ def visualize_comparators(comp: ast.expr) -> str:
                 attribute = attribute.value
             assert isinstance(attribute, ast.Name)
 
-            return f'{result}({attribute.id})'
+            # return f'{result}({attribute.id})'
+            # TODO is this better?
+            args_str = ", ".join([_visualize_expression(arg) for arg in expr.args])
+            return f'{attribute.id}.{result}({args_str})'
 
-        argument = comp.args[0]
+        argument = expr.args[0]
         if isinstance(argument, ast.Call):
             assert isinstance(func, ast.Name)
 
@@ -189,14 +401,25 @@ def visualize_comparators(comp: ast.expr) -> str:
         elif isinstance(argument, ast.Name) and isinstance(func, ast.Name):
             return f'{func.id}({argument.id})'
         else:
-            return str(comp)
+            # If it is not a expression that is handled above, we simply return the expression as a string.
+            return str(expr)
+    elif isinstance(expr, ast.Subscript):
+        if isinstance(expr.slice, ast.Index):
+            return f'{_visualize_expression(expr.value)}[{_visualize_expression(expr.slice.value)}]'
+        elif isinstance(expr.slice, ast.Slice):
+            subscript_value = _visualize_expression(expr.value)
+            slice_lower = _visualize_expression(expr.slice.lower)
+            slice_upper = _visualize_expression(expr.slice.upper)
+            return f'{subscript_value}[{slice_lower}:{slice_upper}]'
     else:
         # If it is not a expression that is handled above, we simply return the expression as a string.
-        return str(comp)
+        return str(expr)
 
 
 @require(lambda expr: len(expr.ops) == 1 and len(expr.comparators) == 1)
-def _parse_single_compare(expr: ast.Compare, condition: Callable[..., Any], function_args_hints: Dict[str, Any]) -> Optional[List[Row]]:
+def _parse_single_compare(expr: ast.Compare,
+                          condition: Callable[..., Any],  # TODO remove?
+                          function_args_hints: Dict[str, Any]) -> Optional[List[Row]]:
     left = expr.left
     op = expr.ops[0]
     right = expr.comparators[0]
@@ -216,60 +439,103 @@ def _parse_single_compare(expr: ast.Compare, condition: Callable[..., Any], func
                       function_args_hints[var_id],
                       'dummy_function',
                       None,
-                      {'is_unique': (set(), set())})
+                      {'is_unique': (set(), set())})  # TODO
             rows.append(row)
 
+    # format: var_id COMPARISON value
     if isinstance(left, ast.Name):
         var_id = left.id
         row_kind = Kind.BASE
         add_to_rows = True
+        row_property = Property(
+            identifier=typing.cast(ast.expr, op),
+            property_arguments=[PropertyArgument(argument=(right,),
+                                                 free_variables=list(
+                                                     extract_variables_from_expression(right, function_args_hints))
+                                                 )],
+            left_function_call=None,
+            var_id=var_id,
+            is_routine=False,
+            var_is_caller=False
+        )
+    # format: len(...) COMPARISON value  TODO make this accept more functions
     elif isinstance(left, ast.Call):
-        argument = left.args[0]
-        func = left.func
-        if isinstance(argument, ast.Name) and isinstance(func, ast.Name):
-            var_id = f'{argument.id}.{func.id}'
-            parent = argument.id
-        elif isinstance(left, ast.Call):
-            assert isinstance(func, ast.Name)
-            assert func.id == 'len'
-            var_id = f'{func.id}({visualize_comparators(argument)})'
-        else:
-            raise NotImplementedError
+        assert isinstance(left.func, ast.Name)
+        assert left.func.id == 'len'
+        var_id = _visualize_expression(left)
         row_kind = Kind.LINK
+        parent = var_id[4:-1]
         add_to_rows = True
-        function_args_hints[var_id] = int
-    elif isinstance(left, ast.Subscript):
+        function_args_hints[var_id] = int  # TODO fix type hint!
+        row_property = Property(
+            identifier=typing.cast(ast.expr, op),
+            property_arguments=[PropertyArgument(argument=(right,),
+                                                 free_variables=list(
+                                                     extract_variables_from_expression(right, function_args_hints))
+                                                 )],
+            left_function_call='len',
+            var_id=var_id,  # len(var_id) TODO is this correct?
+            is_routine=True,
+            var_is_caller=False
+        )
+    # format: LIST[INDEX] COMPARISON VALUE
+    elif isinstance(left, ast.expr) and isinstance(left, ast.Subscript):
         value = left.value
         if isinstance(value, ast.Name):
             var_id_base = value.id
         else:
-            raise NotImplementedError(f'Value is expected to be ast.Name and not {value}')
+            raise GenerationError(expr, f'Value is expected to be ast.Name and not {value}')
         idx = left.slice
-        if isinstance(idx, ast.Index):
-            assert isinstance(idx.value, ast.Num)
-            var_id = f'{var_id_base}[{idx.value.n}]'
+
+        var_id = _visualize_expression(left)
+        # index is a number
+        if isinstance(idx, ast.Index) and isinstance(idx.value, ast.Num):
             type_hint = typing.get_args(function_args_hints[var_id_base])[int(idx.value.n.real)]
             function_args_hints[var_id] = type_hint
+        # index is a variable
+        elif isinstance(idx, ast.Index) and isinstance(idx.value, ast.Name):
+            assert len(typing.get_args(function_args_hints[var_id_base])) == 1
+            if idx.value.id not in function_args_hints or not function_args_hints[idx.value.id] == int:
+                raise GenerationError(expr, f'{_visualize_expression(idx.value)} is supposed to be an integer.')
+            type_hint = typing.get_args(function_args_hints[var_id_base])[0]
+            function_args_hints[var_id] = type_hint
         else:
-            raise NotImplementedError(f'Slice is expected to be ast.Index and not {slice}.'
-                                      f'Slices are currently not supported.')
+            raise GenerationError(expr, f'Slice is expected to be ast.Index and not {slice}.'
+                                        f'Slices are currently not supported.')
         add_to_rows = True
         row_kind = Kind.LINK
         parent = var_id_base
+        row_property = Property(
+            identifier=typing.cast(ast.expr, op),
+            property_arguments=[PropertyArgument(argument=(right,),
+                                                 free_variables=list(
+                                                     extract_variables_from_expression(right, function_args_hints))
+                                                 )],
+            left_function_call=None,
+            var_id=var_id,
+            is_routine=False,
+            var_is_caller=False
+        )
+    # format: (n1, n2) >= (0, 0)
     elif isinstance(left, ast.Tuple):
         assert all(isinstance(el, ast.Name) for el in left.elts)
-        left_hand = list(map(lambda el: el.id, left.elts))
-        comps = right
-        assert isinstance(comps, ast.Tuple)
-        right_hand = list(map(lambda el: visualize_comparators(el), comps.elts))
+        left_hand = [
+            _visualize_expression(el)
+            for el in left.elts
+        ]
+        assert isinstance(right, ast.Tuple)
+        right_hand = [
+            _visualize_expression(el)
+            for el in right.elts
+        ]
         assert len(left_hand) == len(right_hand)
+        # create new expression for each comparison separately
+        # example: (n1, n2) >= (0, 0) becomes (n1 >= 0) and (n2 >= 0)
         for (l, r) in zip(left_hand, right_hand):
-            new_expr_ast = ast.parse(f'{l} {visualize_operation(op)} {r}', mode="eval")
+            new_expr_ast = ast.parse(f'{l} {visualize_operator(op)} {r}', mode="eval")
             assert isinstance(new_expr_ast, ast.Expression)
             rows.extend(parse_expression(new_expr_ast.body, condition, function_args_hints))
-        var_id = None
-        row_kind = None
-        add_to_rows = False
+        return rows
     else:
         raise NotImplementedError
 
@@ -278,10 +544,8 @@ def _parse_single_compare(expr: ast.Compare, condition: Callable[..., Any], func
                   row_kind,
                   function_args_hints[var_id],
                   'dummy_function',  # This is fixed on a higher level
-                  parent if parent else None,
-                  {visualize_operation(op): ({visualize_comparators(right)},
-                                             extract_variables_from_expression(right,
-                                                                               function_args_hints))})
+                  parent,
+                  {represent_property_identifier(row_property): row_property})
         rows.append(row)
 
     return rows
@@ -296,6 +560,7 @@ def parse_comparison(
     left = expr.left
     ops = expr.ops
     comparators = expr.comparators
+    # handle chain comparisons
     for op in ops:
         comparison = ast.Compare(left, [op], [comparators[0]])
         rows.extend(_parse_single_compare(comparison, condition, function_args_hints))
@@ -304,134 +569,238 @@ def parse_comparison(
     return rows
 
 
-# TODO this will probably has to become more precise to handle different arguments, ...
-@require(lambda expr: isinstance(expr, ast.Call) and isinstance(expr.func, ast.Attribute))
+@require(lambda expr: isinstance(expr.func, ast.Attribute))
 def parse_attribute(expr: ast.Call, condition: Callable[..., Any], function_args_hints: Dict[str, Any]) -> List[Row]:
-    rows: List[Row] = []
-    variables = extract_variables_from_expression(expr, function_args_hints)
-    if isinstance(expr.func, ast.Attribute):
-        expr_unparsed = astunparse.unparse(expr)
-        method_name, arguments = expr_unparsed[:expr_unparsed.index('(')], expr_unparsed[expr_unparsed.index('('):]
-        arguments = arguments.rstrip('\n')[1:-1].replace(', ', ',').split(',')
-        if len(arguments) > 1:
-            arguments = tuple(arguments)
-        for variable in variables:
-            variables_without_variable = variables.copy()
-            if method_name.startswith(variable):
-                variables_without_variable.remove(variable)
-                # method_name = method_name[len(variable):]
-                method_name = method_name[len(variable)+1:]  # +1 to take into account dot between variable and method
-            row = Row(variable,
-                      Kind.BASE,
-                      function_args_hints[variable],
-                      'dummy_function',
-                      None,
-                      {method_name: (arguments, variables_without_variable)})
-            rows.append(row)
-    elif isinstance(expr.func, ast.Name):
-        raise NotImplementedError
-    else:
-        raise NotImplementedError(f'expected an attribute or name but got {expr.func}')
+    assert isinstance(expr.func, ast.expr) and isinstance(expr.func, ast.Attribute)
 
-    return rows
+    variables = extract_variables_from_expression(expr, function_args_hints)
+
+    if not len(variables) == 1:
+        raise GenerationError(expr, "Only method calls with one variable are currently supported.")
+
+    attribute = expr.func
+    while isinstance(attribute, ast.Attribute):
+        attribute = attribute.value
+
+    assert isinstance(attribute, ast.Name) and isinstance(attribute, ast.expr)
+
+    if attribute.id in variables:
+        var_id = attribute.id
+        var_is_caller = True
+        variables.remove(var_id)
+    else:
+        var_id = variables.pop()
+        var_is_caller = False
+    return [Row(var_id,
+                Kind.BASE,
+                function_args_hints[var_id],
+                'dummy_function',
+                None,
+                {_visualize_expression(attribute): Property(identifier=expr.func,
+                                                            property_arguments=[
+                                                                PropertyArgument(argument=tuple(expr.args, ),
+                                                                                 free_variables=list(variables))
+                                                            ],
+                                                            left_function_call=None,
+                                                            var_id=attribute.id,
+                                                            is_routine=True,
+                                                            var_is_caller=var_is_caller)})]
 
 
 @require(lambda expr:
          isinstance(expr, ast.Call) and isinstance(expr.func, ast.Name) and isinstance(expr.args[0], ast.GeneratorExp)
          and (expr.func.id == 'all' or expr.func.id == 'any'))
-def parse_universal_quantifier(expr: ast.Call, condition: Callable[..., Any], function_args_hints: Dict[str, Any]) -> \
+def parse_quantifier(expr: ast.Call, condition: Callable[..., Any], function_args_hints: Dict[str, Any]) -> \
         List[Row]:
-    generator_expr = expr.args[0]
-    assert isinstance(generator_expr, ast.GeneratorExp)
-    target = generator_expr.generators[0].target  # base
-    it = generator_expr.generators[0].iter  # parent
-    if not isinstance(target, ast.Name):
-        # TODO handle this better? This happens for example in the following case:
-        #   all( .. for idx, item in enumerate(..))
-        raise NotImplementedError
 
-    # TODO Make this work for different sub type hints (e.g. Dict[int, str])
-    # update type hints
-    if isinstance(it, ast.Name):
-        if typing.get_args(function_args_hints[it.id]):
-            assert len(set(typing.get_args(function_args_hints[it.id]))) == 1, \
-                "We assume all sub type hints are the same."
-            function_args_hints[target.id] = typing.get_args(function_args_hints[it.id])[0]
-        else:
-            function_args_hints[target.id] = function_args_hints[it.id]
-    elif isinstance(it, ast.Call) and isinstance(it.func, ast.Attribute):  # TODO Is this a correct assumption
-        value = it.func.value
-        while isinstance(value, ast.Attribute):
-            value = value.value
-        assert isinstance(value, ast.Name)
-        if typing.get_args(function_args_hints[value.id]):
-            assert len(set(typing.get_args(function_args_hints[value.id]))) == 1, \
-                "We assume all sub type hints are the same."
-            function_args_hints[target.id] = typing.get_args(function_args_hints[value.id])[0]
-        else:
-            function_args_hints[target.id] = function_args_hints[value.id]
-    elif isinstance(it, ast.Call) and isinstance(it.func, ast.Name):  # Make difference between attributes and calls
-        args_value = it.args[0]
-        while isinstance(args_value, ast.Call):
-            args_value = args_value.args[0]
-        assert isinstance(args_value, ast.Name)
-        # assert len(set(typing.get_args(function_args_hints[args_value.id]))) == 1, \
-        #     "We assume all sub type hints are the same."
-        function_args_hints[target.id] = function_args_hints[args_value.id]  # TODO is this correct?
-    else:
-        raise NotImplementedError
+    quantifier = cast(ast.Name, expr.func).id
+    predicate = cast(ast.GeneratorExp, expr.args[0]).elt
+    comprehensions = cast(ast.GeneratorExp, expr.args[0]).generators
 
-    # Create the row for the quantifier
-    row_parent = ''
-    if isinstance(it, ast.Call):
-        ast_node = it
-        if isinstance(ast_node.func, ast.Attribute):
-            if ast_node.args:  # TODO check if more than one argument!!
-                row_parent = f'({visualize_comparators(ast_node.args[0])})'
+    if not len(comprehensions) == 1:
+        raise GenerationError(expr, 'we assume for now that we only have one comprehension')  # TODO handle multiple
+
+    comprehension = comprehensions[0]
+    iterator = comprehension.iter
+    target = comprehension.target
+
+    quantifier_args_hints = function_args_hints
+
+    # comprehension is singular variable
+    if isinstance(iterator, ast.Name):
+        assert isinstance(target, ast.Name)
+        quantifier_var_id = _visualize_expression(target)
+        iterator_var = iterator.id
+        iterator_type_hint = function_args_hints[iterator_var]
+        # TODO can this logic be re-used in the other cases?
+        # list[..]
+        if typing.get_origin(iterator_type_hint) == list:
+            # not supported: lists with multiple types
+            if typing.get_origin(typing.get_args(iterator_type_hint)[0]) is Union:  # TODO check if this actually works
+                raise GenerationError(expr, 'lists with mixed types (List[Union[..]]) are not supported')
+            # TODO check case 'lambda n, lst: all(n > item for item in lst)'
+            quantifier_args_hints[quantifier_var_id] = typing.get_args(iterator_type_hint)[0]
+        # dict[..] - iterating over keys
+        elif typing.get_origin(iterator_type_hint) == dict:  # TODO ordered dicts?
+            if typing.get_origin(typing.get_args(iterator_type_hint)[0]) is Union:  # TODO can we move this up?
+                raise GenerationError(expr, 'dictionaries with mixed types (Dict[Union[..],..]) are not supported')
+            quantifier_args_hints[quantifier_var_id] = typing.get_args(iterator_type_hint)[0]
+        # tuple[..]
+        elif typing.get_origin(iterator_type_hint) == tuple:
+            # not supported: tuples with multiple types
+            tuple_type_hints = set(typing.get_args(iterator_type_hint))
+            if Ellipsis in tuple_type_hints:
+                tuple_type_hints.remove(Ellipsis)
+            if len(tuple_type_hints) == 1 and typing.Union not in tuple_type_hints:
+                quantifier_args_hints[quantifier_var_id] = typing.get_args(iterator_type_hint)[0]
             else:
-                row_parent = f'()'
-            ast_node = it.func
-            while isinstance(ast_node, ast.Attribute):  # TODO replace this with visualize_comparators
-                row_parent = f'.{ast_node.attr}{row_parent}'
-                ast_node = ast_node.value
-            assert isinstance(ast_node, ast.Name)
-            row_parent = f'{ast_node.id}{row_parent}'
-        elif isinstance(ast_node, ast.Call):
-            nb_parentheses = 0
-            while isinstance(ast_node, ast.Call):  # TODO replace this with visualize_comparators
-                assert isinstance(ast_node.func, ast.Name)
-                nb_parentheses += 1
-                row_parent = f'{row_parent}{ast_node.func.id}('
-                ast_node = ast_node.args[0]
-            assert isinstance(ast_node, ast.Name)
-            row_parent = f'{row_parent}{ast_node.id}{nb_parentheses * ")"}'
+                raise GenerationError(expr, 'tuples with mixed types are not supported')
+        elif iterator_type_hint == str:
+            # not supported
+            raise GenerationError(expr, 'iterating over strings is not supported')
         else:
-            assert isinstance(ast_node, ast.Name)
-            row_parent = ast_node.id
+            # not supported
+            raise GenerationError(expr, f'iterating over {_visualize_expression(iterator)} is not supported')
+
+        rows = parse_expression(predicate, condition, quantifier_args_hints)
+        for row in rows:
+            if row.kind not in [Kind.UNIVERSAL_QUANTIFIER, Kind.EXISTENTIAL_QUANTIFIER]:
+                row.kind = Kind.LINK
+            # else:  TODO remove
+            #     row.parent = iterator_var
+            if not row.parent:
+                row.parent = iterator_var
+
+        quantifier_row = Row(var_id=quantifier_var_id,
+                             kind=Kind.UNIVERSAL_QUANTIFIER if quantifier == 'all' else Kind.EXISTENTIAL_QUANTIFIER,
+                             type=quantifier_args_hints[quantifier_var_id],
+                             function='dummy_function',
+                             parent=iterator_var,
+                             properties={})
+        rows.insert(0, quantifier_row)
+        return rows
+
+    # comprehension is method/built-in call
+    elif isinstance(iterator, ast.Call) and isinstance(iterator.func, ast.Attribute):
+        iterator_var = _visualize_expression(iterator)
+        quantifier_rows = []
+        if isinstance(iterator.func.value, ast.Name):
+            iterator_root_str = iterator.func.value.id
+            iterator_type_hint = function_args_hints[iterator_root_str]
+            if typing.get_origin(iterator_type_hint) == dict:
+                # dict.keys()
+                if iterator.func.attr == 'keys':
+                    assert isinstance(target, ast.Name)
+                    quantifier_var_id = _visualize_expression(target)
+                    quantifier_args_hints[quantifier_var_id] = typing.get_args(iterator_type_hint)[0]
+                    quantifier_rows.append(Row(var_id=quantifier_var_id,
+                                               kind=Kind.UNIVERSAL_QUANTIFIER if quantifier == 'all' else Kind.EXISTENTIAL_QUANTIFIER,
+                                               type=quantifier_args_hints[quantifier_var_id],
+                                               function='dummy_function',
+                                               parent=iterator_var,
+                                               properties={})
+                                           )
+                # dict.values()
+                elif iterator.func.attr == 'values':
+                    assert isinstance(target, ast.Name)
+                    quantifier_var_id = _visualize_expression(target)
+                    quantifier_args_hints[quantifier_var_id] = typing.get_args(iterator_type_hint)[1]
+                    quantifier_rows.append(Row(var_id=quantifier_var_id,
+                                               kind=Kind.UNIVERSAL_QUANTIFIER if quantifier == 'all' else Kind.EXISTENTIAL_QUANTIFIER,
+                                               type=quantifier_args_hints[quantifier_var_id],
+                                               function='dummy_function',
+                                               parent=iterator_var,
+                                               properties={})
+                                           )
+                # dict.items()
+                elif iterator.func.attr == 'items':
+                    assert isinstance(target, ast.Tuple)
+                    assert len(target.elts) == 2
+                    quantifier_var_id_key = _visualize_expression(target.elts[0])
+                    quantifier_var_id_value = _visualize_expression(target.elts[1])
+                    quantifier_args_hints[quantifier_var_id_key] = typing.get_args(iterator_type_hint)[0]
+                    quantifier_args_hints[quantifier_var_id_value] = typing.get_args(iterator_type_hint)[1]
+                    quantifier_rows.append(Row(var_id=quantifier_var_id_key,
+                                               kind=Kind.UNIVERSAL_QUANTIFIER if quantifier == 'all' else Kind.EXISTENTIAL_QUANTIFIER,
+                                               type=quantifier_args_hints[quantifier_var_id_key],
+                                               function='dummy_function',
+                                               parent=f'{iterator_root_str}.keys()',
+                                               properties={})
+                                           )
+                    quantifier_rows.append(Row(var_id=quantifier_var_id_value,
+                                               kind=Kind.UNIVERSAL_QUANTIFIER if quantifier == 'all' else Kind.EXISTENTIAL_QUANTIFIER,
+                                               type=quantifier_args_hints[quantifier_var_id_value],
+                                               function='dummy_function',
+                                               parent=f'{iterator_root_str}.values()',
+                                               properties={})
+                                           )
+                else:
+                    raise Exception  # TODO
+            # str.split()
+            elif iterator_type_hint == str and iterator.func.attr == 'split':
+                assert isinstance(target, ast.Name)
+                iterator_root_str = iterator.func.value.id
+                iterator_type_hint = function_args_hints[iterator_root_str]
+                quantifier_var_id = _visualize_expression(target)
+                quantifier_args_hints[quantifier_var_id] = iterator_type_hint
+                quantifier_rows.append(Row(var_id=quantifier_var_id,
+                                           kind=Kind.UNIVERSAL_QUANTIFIER if quantifier == 'all' else Kind.EXISTENTIAL_QUANTIFIER,
+                                           type=quantifier_args_hints[quantifier_var_id],
+                                           function='dummy_function',
+                                           parent=iterator_var,
+                                           properties={})
+                                       )
+            else:
+                raise Exception  # TODO make this a better generation exception
+
+        rows = parse_expression(predicate, condition, quantifier_args_hints)
+
+        for row in rows:
+            if row.kind not in [Kind.UNIVERSAL_QUANTIFIER, Kind.EXISTENTIAL_QUANTIFIER]:
+                row.kind = Kind.LINK
+            else:
+                row.parent = iterator_var
+        for quantifier_row in reversed(quantifier_rows):
+            rows.insert(0, quantifier_row)
+        return rows
+
+    # comprehension is function call
+    elif isinstance(iterator, ast.Call) and isinstance(iterator.func, ast.Name):  # TODO multiple calls?
+        assert isinstance(target, ast.Tuple)
+        quantifier_rows = []
+
+        func_name = iterator.func.id
+        if func_name != 'zip':
+            raise GenerationError(expr, "only zip(..) is allowed as a function in the generator")
+        if any(isinstance(arg, ast.Call) for arg in iterator.args):
+            raise GenerationError(expr, "only zip(..) is allowed as a function in the generator")
+        iterator_var = _visualize_expression(iterator)
+        quantifier_var_ids = [_visualize_expression(el) for el in target.elts]
+        args = [_visualize_expression(arg) for arg in iterator.args]
+        for var_id, arg in zip(quantifier_var_ids, args):
+            assert len(typing.get_args(function_args_hints[arg])) == 1
+            iterator_type_hint = typing.get_args(function_args_hints[arg])[0]
+            quantifier_args_hints[var_id] = iterator_type_hint
+            quantifier_rows.append(Row(var_id=var_id,
+                                       kind=Kind.UNIVERSAL_QUANTIFIER if quantifier == 'all' else Kind.EXISTENTIAL_QUANTIFIER,
+                                       type=quantifier_args_hints[var_id],
+                                       function='dummy_function',
+                                       parent=arg,
+                                       properties={})
+                                   )
+        rows = parse_expression(predicate, condition, quantifier_args_hints)
+
+        for row in rows:
+            if row.kind not in [Kind.UNIVERSAL_QUANTIFIER, Kind.EXISTENTIAL_QUANTIFIER]:
+                row.kind = Kind.LINK
+            else:
+                row.parent = iterator_var  # TODO is this correct?
+        for quantifier_row in reversed(quantifier_rows):
+            rows.insert(0, quantifier_row)
+        return rows
     else:
-        assert isinstance(it, ast.Name)
-        row_parent = it.id
-
-    assert isinstance(expr.func, ast.Name)
-    quantifier_row = Row(target.id,
-                         Kind.UNIVERSAL_QUANTIFIER if expr.func.id == 'all' else Kind.EXISTENTIAL_QUANTIFIER,
-                         function_args_hints[target.id],
-                         'dummy_function',
-                         row_parent,
-                         {})
-
-    # create all rows linked to the quantifier row
-    compare = generator_expr.elt
-    rows = parse_expression(compare, condition, function_args_hints)
-    for row in rows:
-        if row.kind not in [Kind.UNIVERSAL_QUANTIFIER, Kind.EXISTENTIAL_QUANTIFIER]:
-            row.kind = Kind.LINK
-        else:
-            row.parent = quantifier_row.var_id
-
-    rows.insert(0, quantifier_row)
-
-    return rows
+        # not supported
+        raise GenerationError(expr, f'{_visualize_expression(expr)} could not be parsed')
 
 
 def parse_boolean_operator(expr: ast.BoolOp, condition: Callable[..., Any], function_args_hints: Dict[str, Any]) -> \
@@ -446,14 +815,20 @@ def parse_boolean_operator(expr: ast.BoolOp, condition: Callable[..., Any], func
         return result
 
 
+# TODO remove 'condition'?
 def parse_expression(expr: ast.expr, condition: Callable[..., Any], function_args_hints: Dict[str, Any]) -> List[Row]:
+    # format: var_id COMPARISON value
     if isinstance(expr, ast.Compare):
         return parse_comparison(expr, condition, function_args_hints)
+    # format: var_id.METHOD(..) or MODULE.FUNCTION(..var_id..) or obj.METHOD(..var_id..)
+    # TODO does it also cover var_id.property?
     elif isinstance(expr, ast.Call) and isinstance(expr.func, ast.Attribute):
         return parse_attribute(expr, condition, function_args_hints)
+    # format: all(..for..in..) or any(..for..in..)
     elif isinstance(expr, ast.Call) and isinstance(expr.func, ast.Name) and \
             (expr.func.id == 'all' or expr.func.id == 'any') and isinstance(expr.args[0], ast.GeneratorExp):
-        return parse_universal_quantifier(expr, condition, function_args_hints)
+        return parse_quantifier(expr, condition, function_args_hints)
+    # format: .. AND ..
     elif isinstance(expr, ast.BoolOp):
         return parse_boolean_operator(expr, condition, function_args_hints)
     else:
@@ -473,7 +848,7 @@ def generate_symbol_table(func: CallableT) -> Tuple[List[Tuple[ast.AST, Optional
     if 'return' in type_hints:
         del type_hints['return']
 
-    # We only infer specific strategies if all arguments have a type hint
+    # We only infer specific strategies if all arguments have a type hint  TODO unclear what this means
     if len(args) == len(type_hints):
         for arg_name, arg_type_hint in type_hints.items():
             row = Row(arg_name,
@@ -518,13 +893,12 @@ def generate_and_print_table(func: CallableT) -> None:
     print_pretty_table(table)
 
     if failed_contracts:
-        type_hints = typing.get_type_hints(func)
+        # type_hints = typing.get_type_hints(func)  # TODO remove?
 
         print("The following formula(s) are currently not supported and will be added as filters:\n")
         for failed_contract in failed_contracts:
             contract = failed_contract[0]
             error_message = failed_contract[1]
-            # print(failed_contract[0])
             print(astunparse.unparse(contract))
             if error_message:
                 print(f"Exception.message: {error_message}")

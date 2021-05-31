@@ -16,7 +16,6 @@ import astor
 # Shamelessly stolen from icontract
 CallableT = TypeVar('CallableT', bound=Callable[..., Any])
 
-# TODO introduce code regions
 
 ##
 # Exceptions
@@ -86,10 +85,16 @@ def add_property_arguments_to_property(prop: Property, property_arguments: List[
 def increment_property(prop: Property) -> Property:
     new_property_arguments = []
     for property_argument in prop.property_arguments:
-        new_property_arguments.append(PropertyArgument((ast.BinOp(property_argument.argument[0], ast.Add(),  # noqa
-                                                                  ast.Constant(1, lineno=0, col_offset=0, kind=None),
-                                                                  lineno=0, col_offset=0, kind=None),),
-                                                       property_argument.free_variables))
+        old_argument = property_argument.argument[0]
+        if isinstance(old_argument, ast.Constant):
+            old_argument.value = int(old_argument.value) + 1
+            new_property_arguments.append(PropertyArgument((old_argument,),
+                                                           property_argument.free_variables))
+        else:
+            new_property_arguments.append(PropertyArgument((ast.BinOp(property_argument.argument[0], ast.Add(),  # noqa
+                                                                      ast.Constant(1, lineno=0, col_offset=0, kind=None),
+                                                                      lineno=0, col_offset=0, kind=None),),
+                                                           property_argument.free_variables))
 
     return Property(identifier=prop.identifier,
                     property_arguments=new_property_arguments,
@@ -102,10 +107,16 @@ def increment_property(prop: Property) -> Property:
 def decrement_property(prop: Property) -> Property:
     new_property_arguments = []
     for property_argument in prop.property_arguments:
-        new_property_arguments.append(PropertyArgument((ast.BinOp(property_argument.argument[0], ast.Sub(),  # noqa
-                                                                  ast.Constant(1, lineno=0, col_offset=0, kind=None),
-                                                                  lineno=0, col_offset=0, kind=None),),
-                                                       property_argument.free_variables))
+        old_argument = property_argument.argument[0]
+        if isinstance(old_argument, ast.Constant):
+            old_argument.value = int(old_argument.value) - 1
+            new_property_arguments.append(PropertyArgument((old_argument,),
+                                                           property_argument.free_variables))
+        else:
+            new_property_arguments.append(PropertyArgument((ast.BinOp(property_argument.argument[0], ast.Sub(),  # noqa
+                                                                      ast.Constant(1, lineno=0, col_offset=0, kind=None),
+                                                                      lineno=0, col_offset=0, kind=None),),
+                                                           property_argument.free_variables))
     return Property(identifier=prop.identifier,
                     property_arguments=new_property_arguments,
                     left_function_call=prop.left_function_call,
@@ -139,16 +150,7 @@ def property_as_lambdas(prop: Property) -> List[Lambda]:
     if prop.left_function_call:
         var_id_str = f"{prop.left_function_call}({var_id_str})"
 
-    arguments_str_list = []
-    for property_argument in prop.property_arguments:
-        argument_item_str_list = []
-        for argument_item in property_argument.argument:
-            argument_item_str = astor.to_source(argument_item).strip()
-            if re.match(r'\"\"\"(.*)\"\"\"', argument_item_str):
-                regex = re.search(r'\"\"\"(.*)\"\"\"', argument_item_str).group(1)
-                argument_item_str = re.sub(r'\"\"\"(.*)\"\"\"', f'r\'{regex}\'', argument_item_str)
-            argument_item_str_list.append(argument_item_str)
-        arguments_str_list.append(", ".join(argument_item_str_list))
+    arguments_str_list = represent_property_arguments(prop)
 
     if prop.is_routine:
         if prop.var_is_caller:
@@ -194,17 +196,7 @@ def property_as_lambdas(prop: Property) -> List[Lambda]:
 
 
 def represent_property(prop: Property) -> str:
-    arguments_str_list = []
-    for property_argument in prop.property_arguments:
-        argument_item_str_list = []
-        for argument_item in property_argument.argument:
-            argument_item_str = astor.to_source(argument_item).strip()
-            if re.match(r'\"\"\"(.*)\"\"\"', argument_item_str):
-                regex = re.search(r'\"\"\"(.*)\"\"\"', argument_item_str).group(1)
-                argument_item_str = re.sub(r'\"\"\"(.*)\"\"\"', f'r\'{regex}\'', argument_item_str)
-            argument_item_str_list.append(argument_item_str)
-        if argument_item_str_list:
-            arguments_str_list.append("(" + ", ".join(argument_item_str_list) + ",)")
+    arguments_str_list = represent_property_arguments(prop)  # TODO better naming + include next lines?
 
     if arguments_str_list:
         argument_item_str = "{" + ", ".join(arguments_str_list) + "}"
@@ -232,6 +224,34 @@ def represent_property_as_lambdas(prop: Property) -> str:
     ])
 
 
+def represent_property_argument(property_argument: PropertyArgument) -> str:
+    argument_item_str_list = []
+    for argument_item in property_argument.argument:
+        argument_item_str = astor.to_source(argument_item).strip()
+        if re.match(r'\"\"\"(.*)\"\"\"', argument_item_str):
+            regex = re.search(r'\"\"\"(.*)\"\"\"', argument_item_str).group(1)
+            argument_item_str = re.sub(r'\"\"\"(.*)\"\"\"', f'r\'{regex}\'', argument_item_str)
+        # remove unnecessary parentheses around numbers
+        if re.match(r'^\(.*\)$', argument_item_str) and argument_item_str[1:-1].isnumeric():
+            argument_item_str = argument_item_str[1:-1]
+        argument_item_str_list.append(argument_item_str)
+    if not argument_item_str_list:
+        return ""
+    elif len(argument_item_str_list) == 1:
+        return argument_item_str_list[0]
+    else:
+        return "(" + ", ".join(argument_item_str_list) + ")"
+
+
+def represent_property_arguments(prop: Property) -> List[str]:
+    arguments_str_list = []
+    for property_argument in prop.property_arguments:
+        arguments_str_list.append(
+            represent_property_argument(property_argument)
+        )
+    return arguments_str_list
+
+
 ##
 # Table
 ##
@@ -251,7 +271,7 @@ class Row:
     function: str
     parent: Optional['str']
     # TODO (mristin): use ordered dict? or something deterministic?
-    properties: Dict[str, Property]
+    properties: OrderedDict[str, Property]
 
     def __repr__(self) -> str:
         return f'{self.var_id}\t{self.kind}\t{self.type}\t{self.function}' \
@@ -466,7 +486,7 @@ def _parse_single_compare(expr: ast.Compare,
         row_kind = Kind.LINK
         parent = var_id[4:-1]
         add_to_rows = True
-        function_args_hints[var_id] = int  # TODO fix type hint!
+        function_args_hints[var_id] = int
         row_property = Property(
             identifier=typing.cast(ast.expr, op),
             property_arguments=[PropertyArgument(argument=(right,),
@@ -474,7 +494,7 @@ def _parse_single_compare(expr: ast.Compare,
                                                      extract_variables_from_expression(right, function_args_hints))
                                                  )],
             left_function_call='len',
-            var_id=var_id,  # len(var_id) TODO is this correct?
+            var_id=var_id,
             is_routine=True,
             var_is_caller=False
         )

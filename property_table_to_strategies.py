@@ -1,17 +1,17 @@
 import abc
-
-import networkx as nx
-from hypothesis.strategies._internal.strategies import Ex
-from icontract import require, ensure
 import typing
-from typing import List, Union, Dict, Tuple, Set, Sequence, Callable, Hashable, Optional
-from icontract_hypothesis_Lauren import generate_symbol_table
 from dataclasses import dataclass
-import itertools
+from typing import List, Union, Dict, Tuple, Set, Sequence, Callable, Hashable, Optional
+
+from hypothesis.strategies._internal.strategies import Ex
+
+from icontract_hypothesis_Lauren import generate_symbol_table
+from icontract_hypothesis_Lauren.generate_symbol_table import Lambda, property_as_lambdas, \
+    represent_property_arguments, decrement_property, increment_property
 
 
 ##
-# CLASSES
+# Classes
 ##
 
 
@@ -25,9 +25,9 @@ class SymbolicStrategy:
 @dataclass
 class SymbolicIntegerStrategy(SymbolicStrategy):
     var_id: str
-    min_value: Sequence[Union[int, str]]
-    max_value: Sequence[Union[int, str]]
-    filters: Sequence[Tuple[str, Set[str]]]
+    min_value: Sequence[str]
+    max_value: Sequence[str]
+    filters: Sequence[Lambda]
 
     def represent(self):
         result: List[str] = [f'hypothesis.strategies.integers(']
@@ -44,10 +44,8 @@ class SymbolicIntegerStrategy(SymbolicStrategy):
             elif len(self.max_value) > 1:
                 result.append(f'max_value=min({", ".join(str(e) for e in self.max_value)})')
         result.append(')')
-        for f in self.filters:
-            free_variables = [self.var_id]
-            free_variables.extend(f[1])
-            result.append(f'.filter(lambda {", ".join(free_variables)}: {f[0]})')
+        for lambda_filter in self.filters:
+            result.append(f'.filter({lambda_filter})')
         return "".join(result)
 
 
@@ -56,9 +54,9 @@ class SymbolicTextStrategy(SymbolicStrategy):
     var_id: str
     blacklist_categories: Sequence[Set[str]]
     whitelist_categories: Sequence[Set[str]]
-    min_size: Sequence[Union[int, str]]
-    max_size: Sequence[Union[int, str]]
-    filters: Sequence[Tuple[str, Set[str]]]
+    min_size: Sequence[str]
+    max_size: Sequence[str]
+    filters: Sequence[Lambda]
 
     def represent(self):
         result = [f'hypothesis.strategies.text(']
@@ -91,9 +89,7 @@ class SymbolicTextStrategy(SymbolicStrategy):
         result.append(')')
 
         for f in self.filters:
-            free_variables = [self.var_id]
-            free_variables.extend(f[1])
-            result.append(f'.filter(lambda {", ".join(free_variables)}: {f[0]})')
+            result.append(f'.filter({f})')
 
         return "".join(result)
 
@@ -103,10 +99,7 @@ class SymbolicFromRegexStrategy(SymbolicStrategy):
     var_id: str
     regexps: Sequence[str]
     full_match: bool
-    # TODO remove
-    min_size: Sequence[Union[int, str]]
-    max_size: Sequence[Union[int, str]]
-    filters: Sequence[Tuple[str, Set[str]]]
+    filters: Sequence[Lambda]
 
     def represent(self):
         result = [f'hypothesis.strategies.from_regex(regex=r"']
@@ -125,9 +118,7 @@ class SymbolicFromRegexStrategy(SymbolicStrategy):
         result.append(')')
 
         for f in self.filters:
-            free_variables = [self.var_id]
-            free_variables.extend(f[1])
-            result.append(f'.filter(lambda {", ".join(free_variables)}: {f[0]})')
+            result.append(f'.filter({f})')
 
         return "".join(result)
 
@@ -139,11 +130,11 @@ UniqueBy = Union[Callable[[Ex], Hashable], Tuple[Callable[[Ex], Hashable], ...]]
 class SymbolicListStrategy(SymbolicStrategy):
     var_id: str
     elements: SymbolicStrategy
-    min_size: Sequence[Union[int, str]]
-    max_size: Sequence[Union[int, str]]
+    min_size: Sequence[str]
+    max_size: Sequence[str]
     unique_by: Sequence[UniqueBy]
     unique: bool
-    filters: Sequence[Tuple[str, Set[str]]]
+    filters: Sequence[Lambda]
 
     def represent(self) -> str:
         result = [f'hypothesis.strategies.lists(elements={self.elements.represent()}']
@@ -165,51 +156,54 @@ class SymbolicListStrategy(SymbolicStrategy):
             result.append(f', unique=True')
 
         result.append(')')
-        # TODO filters
+
+        for f in self.filters:
+            result.append(f'.filter({f})')
+
         return "".join(result)
 
 
 ##
-# IMPLEMENTATION
+# Implementation
 ##
 
 
 def generate_strategies(table: generate_symbol_table.Table):
-    # variable identifier ->  strategy how to generte the identifier
+    # variable identifier ->  strategy how to generate the identifier
     strategies: Dict[str, SymbolicStrategy] = dict()
 
     for row in table.get_rows():
         if row.kind == generate_symbol_table.Kind.BASE:
             strategies[row.var_id] = _infer_strategy(row, table)
     # TODO fix dependencies
-    for strategy_id, strategy in strategies.items():
-        if isinstance(strategy, SymbolicIntegerStrategy):
-            for k, v_ids in table.get_dependencies(table.get_row_by_var_id(strategy_id)).items():
-                for v_id in v_ids:
-                    v = strategies[v_id]
-                    if isinstance(v, SymbolicIntegerStrategy):
-                        new_min_constraints = list(v.min_value)
-                        new_max_constraints = list(v.max_value)
-                        # TODO this is not correct
-                        if k == '>':
-                            new_min_constraints.extend([
-                                str(int(arg) - 1) if isinstance(arg, int) or arg.isnumeric() else f'{arg}-1'
-                                for arg in strategy.min_value
-                            ])
-                        elif k == '>=':
-                            new_max_constraints.extend(strategy.max_value)
-                        elif k == '<':
-                            new_min_constraints.extend([
-                                str(int(arg) + 1) if isinstance(arg, int) or arg.isnumeric() else f'{arg}+1'
-                                for arg in strategy.min_value
-                            ])
-                        elif k == '<=':
-                            new_min_constraints.extend(strategy.min_value)
-                        new_v = SymbolicIntegerStrategy(var_id=v.var_id,
-                                                        min_value=new_min_constraints,
-                                                        max_value=new_max_constraints,
-                                                        filters=v.filters)
-                        strategies[v.var_id] = new_v
+    # for strategy_id, strategy in strategies.items():
+    #     if isinstance(strategy, SymbolicIntegerStrategy):
+    #         for k, v_ids in table.get_dependencies(table.get_row_by_var_id(strategy_id)).items():
+    #             for v_id in v_ids:
+    #                 v = strategies[v_id]
+    #                 if isinstance(v, SymbolicIntegerStrategy):
+    #                     new_min_constraints = list(v.min_value)
+    #                     new_max_constraints = list(v.max_value)
+    #                     # TODO this is not correct
+    #                     if k == '>':
+    #                         new_min_constraints.extend([
+    #                             str(int(arg) - 1) if isinstance(arg, int) or arg.isnumeric() else f'{arg}-1'
+    #                             for arg in strategy.min_value
+    #                         ])
+    #                     elif k == '>=':
+    #                         new_max_constraints.extend(strategy.max_value)
+    #                     elif k == '<':
+    #                         new_min_constraints.extend([
+    #                             str(int(arg) + 1) if isinstance(arg, int) or arg.isnumeric() else f'{arg}+1'
+    #                             for arg in strategy.min_value
+    #                         ])
+    #                     elif k == '<=':
+    #                         new_min_constraints.extend(strategy.min_value)
+    #                     new_v = SymbolicIntegerStrategy(var_id=v.var_id,
+    #                                                     min_value=new_min_constraints,
+    #                                                     max_value=new_max_constraints,
+    #                                                     filters=v.filters)
+    #                     strategies[v.var_id] = new_v
     return strategies
 
 
@@ -229,40 +223,30 @@ def _infer_strategy(row: generate_symbol_table.Row, table: generate_symbol_table
 
 
 ##
-# INTEGERS
+# Integers
 ##
 
 
 def _infer_int_strategy(row: generate_symbol_table.Row,
                         table: generate_symbol_table.Table) -> SymbolicIntegerStrategy:
-    row_properties = row.properties
-    max_value_constraints: List[Union[int, str]] = []
-    min_value_constraints: List[Union[int, str]] = []
-    filters: List[Tuple[str, Set[str]]] = []
-    # TODO better name for args
-    for row_property, (args, free_variables) in row_properties.items():
-        # TODO this should already have happened in the property table
-        args = [
-            int(arg) if arg.isnumeric() else arg
-            for arg in args
-        ]
+    max_value_constraints: List[str] = []  # TODO rename
+    min_value_constraints: List[str] = []
+    filters: List[Lambda] = []
 
-        if row_property == '<':
-            max_value_constraints.extend([
-                str(int(arg) - 1) if isinstance(arg, int) or arg.isnumeric() else f'{arg}-1'
-                for arg in args
-            ])
-        elif row_property == '<=':
-            max_value_constraints.extend(args)
-        elif row_property == '>':
-            min_value_constraints.extend([
-                str(int(arg) + 1) if isinstance(arg, int) or arg.isnumeric() else f'{arg}+1'
-                for arg in args
-            ])
-        elif row_property == '>=':
-            min_value_constraints.extend(args)
+    for property_identifier, row_property in row.properties.items():
+
+        if property_identifier == '<':
+            row_property_decremented = decrement_property(row_property)
+            max_value_constraints.extend(represent_property_arguments(row_property_decremented))
+        elif property_identifier == '<=':
+            max_value_constraints.extend(represent_property_arguments(row_property))
+        elif property_identifier == '>':
+            row_property_incremented = increment_property(row_property)
+            min_value_constraints.extend(represent_property_arguments(row_property_incremented))
+        elif property_identifier == '>=':
+            min_value_constraints.extend(represent_property_arguments(row_property))
         else:
-            filters.append((f"{row.var_id}{row_property}{args}", free_variables))
+            filters.extend(property_as_lambdas(row_property))
 
     for link_row in table.get_rows():
         if link_row.parent == row.var_id and link_row.kind == generate_symbol_table.Kind.LINK:
@@ -276,67 +260,56 @@ def _infer_int_strategy(row: generate_symbol_table.Row,
                                    max_value=max_value_constraints,
                                    filters=filters)
 
-# TODO (mristin): Capitalize the titles (not upper-case)
+
 ##
 # Strings
 ##
 
 def _infer_text_strategy(row: generate_symbol_table.Row,
                          table: generate_symbol_table.Table) -> SymbolicTextStrategy:
-    row_properties = row.properties
     blacklist_categories: List[Set[str]] = []
     whitelist_categories: List[Set[str]] = []
     min_size: List[Union[int, str]] = []
     max_size: List[Union[int, str]] = []
     filters: List[Tuple[str, Set[str]]](row.var_id) = []
 
-    for row_property, (args, free_vars) in row_properties.items():
-        if row_property == 'isalnum':
+    for property_identifier, row_property in row.properties.items():
+        if property_identifier == 'isalnum':
             whitelist_categories.append({'Ll', 'Lu', 'Nd'})
-        elif row_property == 'isalpha':
+        elif property_identifier == 'isalpha':
             whitelist_categories.append({'Ll', 'Lu'})
-        elif row_property == 'isdigit':
+        elif property_identifier == 'isdigit':
             whitelist_categories.append({'Nd'})
-        elif row_property == 'islower':
+        elif property_identifier == 'islower':
             whitelist_categories.append({'Ll'})
-        elif row_property == 'isnumeric':
+        elif property_identifier == 'isnumeric':
             whitelist_categories.append({'Nd', 'Nl', 'No'})
-        elif row_property == 'isspace':
+        elif property_identifier == 'isspace':
             whitelist_categories.append({'Zs'})
-        elif row_property == 'isupper':
+        elif property_identifier == 'isupper':
             whitelist_categories.append({'Lu'})
-        elif row_property == 'isdecimal':
+        elif property_identifier == 'isdecimal':
             whitelist_categories.append({'Nd'})
         elif row.kind == generate_symbol_table.Kind.LINK:
-            link_property = row.var_id[len(row.parent) + 1:]
+            # link_property = row.var_id[len(row.parent) + 1:]  # TODO better way?
+            link_property = row.var_id[:-(len(row.parent) + 2)]
             if link_property == 'len':
-                if row_property == '<':
-                    # TODO (mristin): use ast.Expr pick a minor use case; see how it goes. --> parentheses are a nightmare.
-                    # TODO (mristin): introduce two functions: increment(ast.Expression), decrement(ast.Expression) -> ast.Expression
-                    # TODO (mristin):   optimize for constants in that function
-                    # TODO (mristin): Operator precedence with -1 --> you need to put parentheses!
-                    args = [int(arg) - 1 if arg.isnumeric() else f'{arg}-1' for arg in args]
-                    max_size.extend(args)
-                elif row_property == '<=':
-                    max_size.extend(args)
-                elif row_property == '>':
-                    args = [int(arg) + 1 if arg.isnumeric() else f'{arg}+1' for arg in args]
-                    min_size.extend(args)
-                elif row_property == '>=':
-                    min_size.extend(args)
+                if property_identifier == '<':
+                    row_property_decremented = decrement_property(row_property)
+                    max_size.extend(represent_property_arguments(row_property_decremented))
+                elif property_identifier == '<=':
+                    max_size.extend(represent_property_arguments(row_property))
+                elif property_identifier == '>':
+                    row_property_increment = increment_property(row_property)
+                    min_size.extend(represent_property_arguments(row_property_increment))
+                elif property_identifier == '>=':
+                    min_size.extend(represent_property_arguments(row_property))
                 else:
                     raise NotImplementedError
             else:
                 raise NotImplementedError
         else:
-            filter_args = ", ".join(args)
-            if row.var_id in free_vars:  # s.func(..)
-                filters.append((f"{row.var_id}.{row_property}({filter_args})", free_vars))
-            elif not free_vars:
-                filters.append((f"{row.var_id}.{row_property}()", free_vars))
-            else:  # func(..s..)  TODO does this actually occur?
-                filters.append((f"{row_property}({filter_args})", free_vars))
-            # TODO add row property as filter
+            filters.extend(property_as_lambdas(row_property))
 
     for link_row in table.get_rows():
         if link_row.parent == row.var_id and link_row.kind == generate_symbol_table.Kind.LINK:
@@ -357,148 +330,118 @@ def _infer_text_strategy(row: generate_symbol_table.Row,
 
 def _infer_from_regex_strategy(row: generate_symbol_table.Row,
                                table: generate_symbol_table.Table) -> SymbolicFromRegexStrategy:
-    row_properties = row.properties
     regexps: List[str] = []
     full_match: bool = False
-    min_size: List[Union[int, str]] = []
-    max_size: List[Union[int, str]] = []
-    filters: List[Tuple[str, Set[str]]] = []
-    for row_property, (args, free_vars) in row_properties.items():
-        if row_property == 'isalnum':
+    filters: List[Lambda] = []
+
+    for property_identifier, row_property in row.properties.items():
+        if property_identifier == 'isalnum':
             regexps.append(r'^[0-9a-zA-Z]+$')
             full_match = True
-        elif row_property == 'isalpha':
+        elif property_identifier == 'isalpha':
             regexps.append(r'^[a-zA-Z]+$')
             full_match = True
-        elif row_property == 'isdigit':
+        elif property_identifier == 'isdigit':
             regexps.append(r'^[0-9]*$')
             full_match = True
-        elif row_property == 'islower':
+        elif property_identifier == 'islower':
             regexps.append(r'^[a-z]$')
             full_match = True
-        elif row_property == 'isnumeric':
+        elif property_identifier == 'isnumeric':
             regexps.append(r'^(-[0-9]*|[0-9]*)$')
             full_match = True
-        elif row_property == 'isspace':
+        elif property_identifier == 'isspace':
             regexps.append(r'^\s+$')
             full_match = True
-        elif row_property == 'isupper':
+        elif property_identifier == 'isupper':
             regexps.append(r'^[A-Z]+$')
             full_match = True
-        elif row_property == 'isdecimal':
+        elif property_identifier == 'isdecimal':
             regexps.append(r'^\d*\.?\d+$')
             full_match = True
-        elif row_property == 're.match':
+        elif property_identifier == 're.match':
             # re.match(r'..', s), we only want the first argument and we don't want any leading/ending \'
-            regexps.extend([arg[0].strip("\'") for arg in args])
+            # regexps.extend([arg[0].strip("\'") for arg in represent_property_arguments(row_property)])
+            regexps.extend(
+                [arg.split(',')[0][3:-1] for arg in represent_property_arguments(row_property)])  # TODO better way?
             full_match = True
-        elif row_property == 'contains' or row_property == 'in':
-            regexps.extend([arg.strip("\'") for arg in args])
-        elif row_property == 'startswith':
-            stripped_args = [arg.strip("\'") for arg in args]
+        elif property_identifier == 'contains' or property_identifier == 'in':
+            regexps.extend([arg.strip("\'") for arg in represent_property_arguments(row_property)])
+        elif property_identifier == 'startswith':
+            stripped_args = [arg.strip("\'") for arg in represent_property_arguments(row_property)]
             regexps.extend([f'^{arg}' for arg in stripped_args])
-        elif row_property == 'endswith':
-            stripped_args = [arg.strip("\'") for arg in args]
+        elif property_identifier == 'endswith':
+            stripped_args = [arg.strip("\'") for arg in represent_property_arguments(row_property)]
             regexps.extend([f'.*{arg}$' for arg in stripped_args])
             full_match = True
         elif row.kind == generate_symbol_table.Kind.LINK:
-            link_property = row.var_id[len(row.parent) + 1:]
+            # link_property = row.var_id[len(row.parent) + 1:]  # TODO better way?
+            link_property = row.var_id[:-(len(row.parent) + 2)]
+            # TODO better way: row_property.left_function_call
             if link_property == 'len':
-                if row_property == '<':
-                    args_str = ", ".join(args)
-                    if len(args) > 1:
-                        filters.append((f'len({row.parent}) < min({args_str})', free_vars))
-                    else:
-                        filters.append((f'len({row.parent}) < {args_str}', free_vars))
-                elif row_property == '<=':
-                    args_str = ", ".join(args)
-                    if len(args) > 1:
-                        filters.append((f'len({row.parent}) <= min({args_str})', free_vars))
-                    else:
-                        filters.append((f'len({row.parent}) <= {args_str}', free_vars))
-                elif row_property == '>':
-                    args_str = ", ".join(args)
-                    if len(args) > 1:
-                        filters.append((f'len({row.parent}) > max({args_str})', free_vars))
-                    else:
-                        filters.append((f'len({row.parent}) > {args_str}', free_vars))
-                elif row_property == '>=':
-                    args_str = ", ".join(args)
-                    if len(args) > 1:
-                        filters.append((f'len({row.parent}) >= max({args_str})', free_vars))
-                    else:
-                        filters.append((f'len({row.parent}) >= {args_str}', free_vars))
+                if property_identifier == '<':
+                    filters.extend(property_as_lambdas(row_property))
+                elif property_identifier == '<=':
+                    filters.extend(property_as_lambdas(row_property))
+                elif property_identifier == '>':
+                    filters.extend(property_as_lambdas(row_property))
+                elif property_identifier == '>=':
+                    filters.extend(property_as_lambdas(row_property))
                 else:
                     raise NotImplementedError
             else:
                 raise NotImplementedError
         else:
-            filter_args = ", ".join(args)
-            if row.var_id in free_vars:  # s.func(..)
-                filters.append((f"{row.var_id}.{row_property}({filter_args})", free_vars))
-            else:  # func(..s..)  TODO does this actually occur?
-                filters.append((f"{row_property}({filter_args})", free_vars))
+            filters.extend(property_as_lambdas(row_property))
 
     for link_row in table.get_rows():
         if link_row.parent == row.var_id and link_row.kind == generate_symbol_table.Kind.LINK:
             link_strategy = _infer_from_regex_strategy(link_row, table)
             regexps.extend(link_strategy.regexps)
             full_match = full_match or link_strategy.full_match
-            min_size.extend(link_strategy.min_size)
-            max_size.extend(link_strategy.max_size)
             filters.extend(link_strategy.filters)
 
     return SymbolicFromRegexStrategy(var_id=row.var_id,
                                      regexps=regexps,
                                      full_match=full_match,
-                                     min_size=min_size,
-                                     max_size=max_size,
                                      filters=filters)
 
 
 ##
-# LISTS
+# Lists
 ##
 
 # TODO: "nesting" also needs to apply for all the iterable types (sets, dictionaries, ordered dictionaries...)
 
 def _infer_list_strategy(row: generate_symbol_table.Row, table: generate_symbol_table.Table) -> SymbolicListStrategy:
     elements: Optional[SymbolicStrategy] = None
-    min_size: List[Union[int, str]] = []
-    max_size: List[Union[int, str]] = []
+    min_size: List[str] = []
+    max_size: List[str] = []
     unique_by: List[UniqueBy] = []
     unique: bool = False
-    filters: List[Tuple[str, Set[str]]] = []
+    filters: List[Lambda] = []
 
     for other_row in table.get_rows():
         if other_row.parent == row.var_id:
             if other_row.kind == generate_symbol_table.Kind.LINK:
-                link_property = other_row.var_id[len(other_row.parent) + 1:]
+                link_property = other_row.var_id[:-(len(other_row.parent) + 2)]
 
-                for row_property, (args, free_vars) in other_row.properties.items():
+                for property_identifier, row_property in other_row.properties.items():
                     if link_property == 'len':
-                        if row_property == '<':
-                            max_size.extend([
-                                str(int(arg) - 1) if isinstance(arg, int) or arg.isnumeric() else f'{arg}-1'
-                                for arg in args
-                            ])
-                        elif row_property == '<=':
-                            max_size.extend(args)
-                        elif row_property == '>':
-                            min_size.extend([
-                                str(int(arg) + 1) if isinstance(arg, int) or arg.isnumeric() else f'{arg}+1'
-                                for arg in args
-                            ])
-                        elif row_property == '>=':
-                            min_size.extend(args)
+                        if property_identifier == '<':
+                            row_property_decremented = decrement_property(row_property)
+                            max_size.extend(represent_property_arguments(row_property_decremented))
+                        elif property_identifier == '<=':
+                            max_size.extend(represent_property_arguments(row_property))
+                        elif property_identifier == '>':
+                            row_property_increment = increment_property(row_property)
+                            min_size.extend(represent_property_arguments(row_property_increment))
+                        elif property_identifier == '>=':
+                            min_size.extend(represent_property_arguments(row_property))
                         else:
-                            filters.append((f"{row.var_id}{row_property}{args}", free_vars))
+                            filters.extend(property_as_lambdas(row_property))
                     else:
-                        filter_args = ", ".join(args)
-                        if other_row.var_id in free_vars:  # s.func(..)
-                            filters.append((f"{other_row.var_id}.{row_property}({filter_args})", free_vars))
-                        else:  # func(..s..)  TODO does this actually occur?
-                            filters.append((f"{row_property}({filter_args})", free_vars))
+                        filters.extend(property_as_lambdas(row_property))
             elif other_row.kind == generate_symbol_table.Kind.UNIVERSAL_QUANTIFIER:
                 elements = _infer_strategy(other_row, table)
             else:
@@ -540,36 +483,3 @@ def _strategy_from_type(strategy_type: typing.Type) -> SymbolicStrategy:
                                     filters=[])
     else:
         raise NotImplementedError(strategy_type)
-
-
-# region Description
-# TESTS
-# endregion
-
-
-@require(lambda n1: n1 > 0)
-def example_function_1(n1: int) -> None:
-    pass
-
-
-@require(lambda n1: n1 < 10)
-@require(lambda n2: n2 > 100 and n2 < 1000)
-def example_function_2(n1: int, n2: int) -> None:
-    pass
-
-
-@require(lambda n1, n2: n1 < 10 and n1 < n2)
-def example_function_3(n1: int, n2: int) -> None:
-    pass
-
-
-@require(lambda s: s.isidentifier())
-def example_function_4(s: str):
-    pass
-
-
-if __name__ == '__main__':
-    _, t = generate_symbol_table.generate_symbol_table(example_function_4)
-    generate_symbol_table.print_pretty_table(t)
-    print(generate_strategies(t))
-    # print(typing_extensions.get_type_hints(example_function_1))

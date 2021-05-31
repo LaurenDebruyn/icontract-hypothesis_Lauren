@@ -14,7 +14,7 @@ def example_function_1(n1: int) -> None:
 
 
 def expected_table_example_function_1() -> str:
-    return tabulate([['0', 'n1', 'Kind.BASE', str(int), 'example_function_1', '', "{'>': ({((0),)}, set())}"]],
+    return tabulate([['0', 'n1', 'Kind.BASE', str(int), 'example_function_1', '', "{'>': ({(0,)}, set())}"]],
                     headers=['IDX', 'VAR_ID', 'KIND', 'TYPE', 'FUNCTION', 'PARENT', 'PROPERTIES'])
 
 
@@ -31,15 +31,15 @@ def example_function_2(n1: int, n2: int, n3: int, n4: int, s: str, lst: List[int
 
 
 def expected_table_example_function_2() -> Table:
-    row_n1 = ['0', 'n1', 'Kind.BASE', str(int), 'example_function_2', '', "{'>': ({(n2,), ((4),)}, {n2}), '<': ({((100),), "
+    row_n1 = ['0', 'n1', 'Kind.BASE', str(int), 'example_function_2', '', "{'>': ({(n2,), (4,)}, {n2}), '<': ({(100,), "
                                                                           "(n4,)}, {n4})}"]
-    row_n2 = ['1', 'n2', 'Kind.BASE', str(int), 'example_function_2', '', "{'<': ({((300 + n3),)}, {n3}), '>': ({((4),)}, "
+    row_n2 = ['1', 'n2', 'Kind.BASE', str(int), 'example_function_2', '', "{'<': ({((300 + n3),)}, {n3}), '>': ({(4,)}, "
                                                                           "set())}"]
     row_n3 = ['2', 'n3', 'Kind.BASE', str(int), 'example_function_2', '', "{'<': ({(n4,)}, {n4})}"]
     row_n4 = ['3', 'n4', 'Kind.BASE', str(int), 'example_function_2', '', "{'>': ({(n1,)}, {n1})}"]
     row_s = ['4', 's', 'Kind.BASE', str(str), 'example_function_2', '', "{'startswith': ({(r'abc',)}, set())}"]
     row_lst = ['5', 'lst', 'Kind.BASE', str(List[int]), 'example_function_2', '', "{}"]
-    row_lst_len = ['6', 'len(lst)', 'Kind.LINK', str(int), 'example_function_2', 'lst', "{'>': ({((0),)}, set())}"]
+    row_lst_len = ['6', 'len(lst)', 'Kind.LINK', str(int), 'example_function_2', 'lst', "{'>': ({(0,)}, set())}"]
     return tabulate([row_n1, row_n2, row_n3, row_n4, row_s, row_lst, row_lst_len],
                     headers=['IDX', 'VAR_ID', 'KIND', 'TYPE', 'FUNCTION', 'PARENT', 'PROPERTIES'])
 
@@ -51,7 +51,7 @@ def example_function_3(lst: List[int]) -> None:
 
 def expected_table_example_function_3() -> str:
     row_lst = ['0', 'lst', 'Kind.BASE', str(List[int]), 'example_function_3', '', "{}"]
-    row_item = ['1', 'item', 'Kind.UNIVERSAL_QUANTIFIER', str(int), 'example_function_3', 'lst', "{'>': ({((0),)}, "
+    row_item = ['1', 'item', 'Kind.UNIVERSAL_QUANTIFIER', str(int), 'example_function_3', 'lst', "{'>': ({(0,)}, "
                                                                                                  "set())}"]
     return tabulate([row_lst, row_item],
                     headers=['IDX', 'VAR_ID', 'KIND', 'TYPE', 'FUNCTION', 'PARENT', 'PROPERTIES'])
@@ -111,8 +111,8 @@ def example_function_7(t: Tuple[int, int]):
 
 def expected_table_example_function_7() -> str:
     row_t = ['0', 't', 'Kind.BASE', str(Tuple[int, int]), 'example_function_7', '', "{}"]
-    row_t_0 = ['1', 't[0]', 'Kind.LINK', str(int), 'example_function_7', 't', "{'>': ({((0),)}, set())}"]
-    row_t_1 = ['2', 't[1]', 'Kind.LINK', str(int), 'example_function_7', 't', "{'<': ({((0),)}, set())}"]
+    row_t_0 = ['1', 't[0]', 'Kind.LINK', str(int), 'example_function_7', 't', "{'>': ({(0,)}, set())}"]
+    row_t_1 = ['2', 't[1]', 'Kind.LINK', str(int), 'example_function_7', 't', "{'<': ({(0,)}, set())}"]
     return tabulate([row_t, row_t_0, row_t_1],
                     headers=['IDX', 'VAR_ID', 'KIND', 'TYPE', 'FUNCTION', 'PARENT', 'PROPERTIES'])
 
@@ -123,8 +123,8 @@ def example_function_8(n1: int, n2: int):
 
 
 def expected_table_example_function_8() -> str:
-    row_n1 = ['0', 'n1', 'Kind.BASE', str(int), 'example_function_8', '', "{'>': ({((0),)}, set())}"]
-    row_n2 = ['1', 'n2', 'Kind.BASE', str(int), 'example_function_8', '', "{'>': ({((0),)}, set())}"]
+    row_n1 = ['0', 'n1', 'Kind.BASE', str(int), 'example_function_8', '', "{'>': ({(0,)}, set())}"]
+    row_n2 = ['1', 'n2', 'Kind.BASE', str(int), 'example_function_8', '', "{'>': ({(0,)}, set())}"]
     return tabulate([row_n1, row_n2],
                     headers=['IDX', 'VAR_ID', 'KIND', 'TYPE', 'FUNCTION', 'PARENT', 'PROPERTIES'])
 
@@ -137,7 +137,7 @@ def example_function_9(lst: List[int]):
 def expected_table_example_function_9() -> str:
     row_lst = ['0', 'lst', 'Kind.BASE', str(List[int]), 'example_function_9', '', "{}"]
     row_lst_item = ['1', 'item', 'Kind.EXISTENTIAL_QUANTIFIER', str(int), 'example_function_9', 'lst',
-                    "{'<=': ({((0),)}, set())}"]
+                    "{'<=': ({(0,)}, set())}"]
     return tabulate([row_lst, row_lst_item],
                     headers=['IDX', 'VAR_ID', 'KIND', 'TYPE', 'FUNCTION', 'PARENT', 'PROPERTIES'])
 
@@ -151,7 +151,7 @@ def expected_table_example_function_10() -> str:
     row_lst = ['0', 'lst', 'Kind.BASE', str(List[List[int]]), 'example_function_10', '', "{}"]
     row_sub_lst = ['1', 'sub_lst', 'Kind.UNIVERSAL_QUANTIFIER', str(List[int]), 'example_function_10', 'lst', "{}"]
     row_item = ['2', 'item', 'Kind.UNIVERSAL_QUANTIFIER', str(int), 'example_function_10', 'sub_lst',
-                "{'>': ({((0),)}, set())}"]
+                "{'>': ({(0,)}, set())}"]
     return tabulate([row_lst, row_sub_lst, row_item],
                     headers=['IDX', 'VAR_ID', 'KIND', 'TYPE', 'FUNCTION', 'PARENT', 'PROPERTIES'])
 
@@ -164,7 +164,7 @@ def example_function_11(d: Dict[int, int]):
 def expected_table_example_function_11() -> str:
     row_d = ['0', 'd', 'Kind.BASE', str(Dict[int, int]), 'example_function_11', '', "{}"]
     row_d_item = ['1', 'item', 'Kind.UNIVERSAL_QUANTIFIER', str(int), 'example_function_11', 'd.values()',
-                  "{'>': ({((0),)}, set())}"]
+                  "{'>': ({(0,)}, set())}"]
     return tabulate([row_d, row_d_item],
                     headers=['IDX', 'VAR_ID', 'KIND', 'TYPE', 'FUNCTION', 'PARENT', 'PROPERTIES'])
 
@@ -189,9 +189,9 @@ def example_function_13(n1: int, n2: int, n3: int):
 
 def expected_table_example_function_13() -> str:
     row_n1 = ['0', 'n1', 'Kind.BASE', str(int), 'example_function_13', '',
-              "{'>': ({((0),)}, set()), '<=': ({(n2,)}, {n2})}"]
+              "{'>': ({(0,)}, set()), '<=': ({(n2,)}, {n2})}"]
     row_n2 = ['1', 'n2', 'Kind.BASE', str(int), 'example_function_13', '', "{'<': ({(n3,)}, {n3})}"]
-    row_n3 = ['2', 'n3', 'Kind.BASE', str(int), 'example_function_13', '', "{'<=': ({((100),)}, set())}"]
+    row_n3 = ['2', 'n3', 'Kind.BASE', str(int), 'example_function_13', '', "{'<=': ({(100,)}, set())}"]
     return tabulate([row_n1, row_n2, row_n3],
                     headers=['IDX', 'VAR_ID', 'KIND', 'TYPE', 'FUNCTION', 'PARENT', 'PROPERTIES'])
 
@@ -228,7 +228,7 @@ def example_function_16(d: Dict[int, Any]) -> None:
 def expected_table_example_function_16() -> str:
     row_d = ['0', 'd', 'Kind.BASE', str(Dict[int, Any]), 'example_function_16', '', "{}"]
     row_d_keys = ['1', 'item', 'Kind.UNIVERSAL_QUANTIFIER', str(int), 'example_function_16', 'd.keys()',
-                  "{'>': ({((0),)}, set())}"]
+                  "{'>': ({(0,)}, set())}"]
     return tabulate([row_d, row_d_keys],
                     headers=['IDX', 'VAR_ID', 'KIND', 'TYPE', 'FUNCTION', 'PARENT', 'PROPERTIES'])
 
@@ -243,7 +243,7 @@ def expected_table_example_function_17() -> str:
     row_d_keys = ['1', 'k', 'Kind.UNIVERSAL_QUANTIFIER', str(str), 'example_function_17', 'd.keys()',
                   "{'re.match': ({(r'[a-z]+', k,)}, set())}"]
     row_d_values = ['2', 'v', 'Kind.UNIVERSAL_QUANTIFIER', str(int), 'example_function_17', 'd.values()',
-                    "{'>=': ({((0),)}, set())}"]
+                    "{'>=': ({(0,)}, set())}"]
     return tabulate([row_d, row_d_keys, row_d_values],
                     headers=['IDX', 'VAR_ID', 'KIND', 'TYPE', 'FUNCTION', 'PARENT', 'PROPERTIES'])
 
@@ -287,7 +287,7 @@ def example_function_20(lst: List[List[int]]):
 def expected_table_example_function_20() -> str:
     row_lst = ['0', 'lst', 'Kind.BASE', str(List[List[int]]), 'example_function_20', '', "{}"]
     row_item = ['1', 'item', 'Kind.UNIVERSAL_QUANTIFIER', str(List[int]), 'example_function_20', 'lst', "{}"]
-    row_item_len = ['2', 'len(item)', 'Kind.LINK', str(int), 'example_function_20', 'item', "{'>': ({((2),)}, set())}"]
+    row_item_len = ['2', 'len(item)', 'Kind.LINK', str(int), 'example_function_20', 'item', "{'>': ({(2,)}, set())}"]
     return tabulate([row_lst, row_item, row_item_len],
                     headers=['IDX', 'VAR_ID', 'KIND', 'TYPE', 'FUNCTION', 'PARENT', 'PROPERTIES'])
 
@@ -299,7 +299,7 @@ def example_function_21(d: Dict[int, str]):
 
 def expected_table_example_function_21() -> str:
     row_d = ['0', 'd', 'Kind.BASE', str(Dict[int, str]), 'example_function_21', '', "{}"]
-    row_k = ['1', 'k', 'Kind.UNIVERSAL_QUANTIFIER', str(int), 'example_function_21', 'd', "{'>': ({((0),)}, set())}"]
+    row_k = ['1', 'k', 'Kind.UNIVERSAL_QUANTIFIER', str(int), 'example_function_21', 'd', "{'>': ({(0,)}, set())}"]
     return tabulate([row_d, row_k],
                     headers=['IDX', 'VAR_ID', 'KIND', 'TYPE', 'FUNCTION', 'PARENT', 'PROPERTIES'])
 
@@ -318,7 +318,7 @@ def example_function_23(t: Tuple[int, ...]):
 def expected_table_example_function_23() -> str:
     row_t = ['0', 't', 'Kind.BASE', str(Tuple[int, ...]), 'example_function_23', '', "{}"]
     row_item = ['1', 'item', 'Kind.UNIVERSAL_QUANTIFIER', str(int), 'example_function_23', 't',
-                "{'>': ({((0),)}, set())}"]
+                "{'>': ({(0,)}, set())}"]
     return tabulate([row_t, row_item],
                     headers=['IDX', 'VAR_ID', 'KIND', 'TYPE', 'FUNCTION', 'PARENT', 'PROPERTIES'])
 
@@ -331,9 +331,9 @@ def example_function_24(d: Dict[int, List[int]]):
 def expected_table_example_function_24() -> str:
     row_t = ['0', 'd', 'Kind.BASE', str(Dict[int, List[int]]), 'example_function_24', '', "{}"]
     row_d_keys = ['1', 'k', 'Kind.UNIVERSAL_QUANTIFIER', str(int), 'example_function_24', 'd.keys()',
-                  "{'>': ({((0),)}, set())}"]
+                  "{'>': ({(0,)}, set())}"]
     row_d_values = ['2', 'lst', 'Kind.UNIVERSAL_QUANTIFIER', str(List[int]), 'example_function_24', 'd.values()', "{}"]
-    row_d_values_len = ['3', 'len(lst)', 'Kind.LINK', str(int), 'example_function_24', 'lst', "{'>': ({((0),)}, set())}"]
+    row_d_values_len = ['3', 'len(lst)', 'Kind.LINK', str(int), 'example_function_24', 'lst', "{'>': ({(0,)}, set())}"]
     return tabulate([row_t, row_d_keys, row_d_values, row_d_values_len],
                     headers=['IDX', 'VAR_ID', 'KIND', 'TYPE', 'FUNCTION', 'PARENT', 'PROPERTIES'])
 

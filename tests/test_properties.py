@@ -89,7 +89,7 @@ class PropertiesRepresentationTest(unittest.TestCase):
 class PropertiesIncrementDecrementTest(unittest.TestCase):
 
     def test_1(self) -> None:
-        test_input = "x >= (5)"
+        test_input = "x >= 5"
         compare = ast.parse(test_input).body[0].value
         prop_input = Property(
             identifier=compare.ops[0],
@@ -100,12 +100,12 @@ class PropertiesIncrementDecrementTest(unittest.TestCase):
             var_is_caller=False
         )
 
-        expected_output_incremented = "x >= (5 + 1)"
+        expected_output_incremented = "({(6,)}, set())"
         prop_input_incremented = increment_property(prop_input)
         self.assertEqual(expected_output_incremented, represent_property(prop_input_incremented))
 
     def test_2(self) -> None:
-        test_input = "x >= (5)"
+        test_input = "x >= 5"
         compare = ast.parse(test_input).body[0].value
         prop_input = Property(
             identifier=compare.ops[0],
@@ -116,7 +116,7 @@ class PropertiesIncrementDecrementTest(unittest.TestCase):
             var_is_caller=False
         )
 
-        expected_output_decremented = "x >= (5 - 1)"
+        expected_output_decremented = "({(4,)}, set())"
         prop_input_decremented = decrement_property(prop_input)
         self.assertEqual(expected_output_decremented, represent_property(prop_input_decremented))
 

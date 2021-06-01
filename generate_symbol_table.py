@@ -92,7 +92,8 @@ def increment_property(prop: Property) -> Property:
                                                            property_argument.free_variables))
         else:
             new_property_arguments.append(PropertyArgument((ast.BinOp(property_argument.argument[0], ast.Add(),  # noqa
-                                                                      ast.Constant(1, lineno=0, col_offset=0, kind=None),
+                                                                      ast.Constant(1, lineno=0, col_offset=0,
+                                                                                   kind=None),
                                                                       lineno=0, col_offset=0, kind=None),),
                                                            property_argument.free_variables))
 
@@ -114,7 +115,8 @@ def decrement_property(prop: Property) -> Property:
                                                            property_argument.free_variables))
         else:
             new_property_arguments.append(PropertyArgument((ast.BinOp(property_argument.argument[0], ast.Sub(),  # noqa
-                                                                      ast.Constant(1, lineno=0, col_offset=0, kind=None),
+                                                                      ast.Constant(1, lineno=0, col_offset=0,
+                                                                                   kind=None),
                                                                       lineno=0, col_offset=0, kind=None),),
                                                            property_argument.free_variables))
     return Property(identifier=prop.identifier,
@@ -399,8 +401,6 @@ def _visualize_expression(expr: ast.expr) -> str:
                 attribute = attribute.value
             assert isinstance(attribute, ast.Name)
 
-            # return f'{result}({attribute.id})'
-            # TODO is this better?
             args_str = ", ".join([_visualize_expression(arg) for arg in expr.args])
             return f'{attribute.id}.{result}({args_str})'
 
@@ -435,6 +435,41 @@ def _visualize_expression(expr: ast.expr) -> str:
     else:
         # If it is not a expression that is handled above, we simply return the expression as a string.
         return str(expr)
+
+
+# TODO find better place to put this:
+class Evaluator(ast.NodeTransformer):
+    #  https://stackoverflow.com/a/62677086
+    ops = {
+        ast.Add: '+',
+        ast.Sub: '-',
+        ast.Mult: '*',
+        ast.Div: '/',
+        # define more here
+    }
+
+    def visit_BinOp(self, node: ast.BinOp):
+        self.generic_visit(node)
+        if isinstance(node.left, ast.Num) and isinstance(node.right, ast.Num):
+            # On Python <= 3.6 you can use ast.literal_eval.
+            # value = ast.literal_eval(node)
+            value = eval(f'{node.left.n} {self.ops[type(node.op)]} {node.right.n}')  # noqa
+            return ast.Num(n=value)
+        if isinstance(node.left, ast.BinOp) and isinstance(node.right, ast.Num) and isinstance(node.left.right, ast.Num):
+            if isinstance(node.left.op, ast.Sub):  # or isinstance(node.left.op, ast.Add):
+                value = eval(f'{node.left.right.n} + {node.right.n}')
+                if value == 0:
+                    return node.left.left
+                return ast.BinOp(left=node.left.left, op=node.left.op, right=ast.Num(n=value))
+            elif isinstance(node.left.op, ast.Add):
+                value = eval(f'{node.left.right.n} - {node.right.n}')
+                if value == 0:
+                    return node.left.left
+                return ast.BinOp(left=node.left.left, op=node.left.op, right=ast.Num(n=value))
+        return node
+
+    def simplify_expression(self, expr: ast.Expr) -> ast.expr:
+        return ast.fix_missing_locations(self.visit(expr))
 
 
 @require(lambda expr: len(expr.ops) == 1 and len(expr.comparators) == 1)
@@ -557,8 +592,48 @@ def _parse_single_compare(expr: ast.Compare,
             assert isinstance(new_expr_ast, ast.Expression)
             rows.extend(parse_expression(new_expr_ast.body, condition, function_args_hints))
         return rows
+    # TODO var +- ... COMP value
+    elif isinstance(left, ast.BinOp):
+        if isinstance(left.left, ast.Name):
+            if isinstance(left.op, ast.Add):
+                new_expr_ast = ast.fix_missing_locations(
+                    Evaluator().simplify_expression(
+                        ast.Expr(
+                            ast.Compare(
+                                left=left.left,
+                                ops=[op],
+                                comparators=[ast.BinOp(left=right,
+                                                       op=ast.Sub(),
+                                                       right=left.right)]
+                            )
+                        )
+                    )
+                )
+            elif isinstance(left.op, ast.Sub):
+                new_expr_ast = ast.fix_missing_locations(
+                    Evaluator().simplify_expression(
+                        ast.Expr(
+                            ast.Compare(
+                                left=left.left,
+                                ops=[op],
+                                comparators=[ast.BinOp(left=right,
+                                                       op=ast.Add(),
+                                                       right=left.right)]
+                            )
+                        )
+                    )
+                )
+            else:
+                raise GenerationError(expr, 'Only + and - are supported as binary operations in the left-hand side.')
+            rows.extend(parse_expression(new_expr_ast.value, condition, function_args_hints))
+            add_to_rows = False
+            var_id = None
+            row_kind = None
+            row_property = None
+        else:
+            raise GenerationError(expr)
     else:
-        raise NotImplementedError
+        raise GenerationError(expr)
 
     if add_to_rows:
         row = Row(var_id,
@@ -633,7 +708,6 @@ def parse_attribute(expr: ast.Call, condition: Callable[..., Any], function_args
          and (expr.func.id == 'all' or expr.func.id == 'any'))
 def parse_quantifier(expr: ast.Call, condition: Callable[..., Any], function_args_hints: Dict[str, Any]) -> \
         List[Row]:
-
     quantifier = cast(ast.Name, expr.func).id
     predicate = cast(ast.GeneratorExp, expr.args[0]).elt
     comprehensions = cast(ast.GeneratorExp, expr.args[0]).generators
@@ -858,7 +932,6 @@ def parse_expression(expr: ast.expr, condition: Callable[..., Any], function_arg
 
 def generate_symbol_table(func: CallableT) -> Tuple[List[Tuple[ast.AST, Optional[str]]], Table]:
     table = Table()
-    # failed_contracts: List[Tuple[str, Optional[str]]] = []
     failed_contracts: List[Tuple[ast.AST, Optional[str]]] = []
 
     # Initialize table with an empty (no properties) row for each argument.
@@ -896,16 +969,6 @@ def generate_symbol_table(func: CallableT) -> Tuple[List[Tuple[ast.AST, Optional
                         else:
                             failed_contracts.append((body, ''))
 
-    # TODO fix dependencies
-    # dependency_graph = generate_dag_from_table(table)
-    # for row_id in nx.topological_sort(dependency_graph):
-    #     row = table.get_row_by_var_id(row_id)
-    #     if isinstance(strategy, SymbolicIntegerStrategy): dependent_strategies = [
-    #             strategies[dependent_strategy_id]
-    #             for dependent_strategy_id in dependency_graph.neighbors(strategy_id)
-    #         ]
-    #         for dependent_strategy in dependent_strategies:
-    #             if dependent_strategy.var_id in strategy.
     return failed_contracts, table
 
 

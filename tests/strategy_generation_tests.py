@@ -34,6 +34,26 @@ class IntegerStrategyGeneration(unittest.TestCase):
         function_name = 'base_5'
         self._execute_end_to_end_test(function_name)
 
+    def test_base_6(self):
+        function_name = 'base_6'
+        self._execute_end_to_end_test(function_name)
+
+    def test_base_7(self):
+        function_name = 'base_7'
+        self._execute_end_to_end_test(function_name)
+
+    def test_base_8(self):
+        function_name = 'base_8'
+        self._execute_end_to_end_test(function_name)
+
+    def test_base_9(self):
+        function_name = 'base_9'
+        self._execute_end_to_end_test(function_name)
+
+    def test_base_10(self):
+        function_name = 'base_10'
+        self._execute_end_to_end_test(function_name)
+
     def _execute_end_to_end_test(self, function_name):
         with open(f'{self._folder_expected_output}{function_name}.txt') as file:
             expected_output = textwrap.dedent(file.read())

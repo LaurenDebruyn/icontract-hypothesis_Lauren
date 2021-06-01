@@ -1,13 +1,16 @@
 import abc
+import ast
 import typing
 from dataclasses import dataclass
 from typing import List, Union, Dict, Tuple, Set, Sequence, Callable, Hashable, Optional
 
+import networkx as nx
 from hypothesis.strategies._internal.strategies import Ex
 
+import icontract_hypothesis_Lauren.generate_symbol_table
 from icontract_hypothesis_Lauren import generate_symbol_table
 from icontract_hypothesis_Lauren.generate_symbol_table import Lambda, property_as_lambdas, \
-    represent_property_arguments, decrement_property, increment_property
+    represent_property_arguments, decrement_property, increment_property, add_property_arguments_to_property
 
 
 ##
@@ -176,34 +179,70 @@ def generate_strategies(table: generate_symbol_table.Table):
         if row.kind == generate_symbol_table.Kind.BASE:
             strategies[row.var_id] = _infer_strategy(row, table)
     # TODO fix dependencies
-    # for strategy_id, strategy in strategies.items():
-    #     if isinstance(strategy, SymbolicIntegerStrategy):
-    #         for k, v_ids in table.get_dependencies(table.get_row_by_var_id(strategy_id)).items():
-    #             for v_id in v_ids:
-    #                 v = strategies[v_id]
-    #                 if isinstance(v, SymbolicIntegerStrategy):
-    #                     new_min_constraints = list(v.min_value)
-    #                     new_max_constraints = list(v.max_value)
-    #                     # TODO this is not correct
-    #                     if k == '>':
-    #                         new_min_constraints.extend([
-    #                             str(int(arg) - 1) if isinstance(arg, int) or arg.isnumeric() else f'{arg}-1'
-    #                             for arg in strategy.min_value
-    #                         ])
-    #                     elif k == '>=':
-    #                         new_max_constraints.extend(strategy.max_value)
-    #                     elif k == '<':
-    #                         new_min_constraints.extend([
-    #                             str(int(arg) + 1) if isinstance(arg, int) or arg.isnumeric() else f'{arg}+1'
-    #                             for arg in strategy.min_value
-    #                         ])
-    #                     elif k == '<=':
-    #                         new_min_constraints.extend(strategy.min_value)
-    #                     new_v = SymbolicIntegerStrategy(var_id=v.var_id,
-    #                                                     min_value=new_min_constraints,
-    #                                                     max_value=new_max_constraints,
-    #                                                     filters=v.filters)
-    #                     strategies[v.var_id] = new_v
+    dependency_graph = nx.topological_sort(
+        icontract_hypothesis_Lauren.generate_symbol_table.generate_dag_from_table(table)
+    )
+    for row_id in dependency_graph:
+        row = table.get_row_by_var_id(row_id)
+        if row.type == int:
+            strategy = strategies[row_id]
+            assert isinstance(strategy, SymbolicIntegerStrategy)
+            for row_property in row.properties.values():
+                if isinstance(row_property.identifier, ast.LtE):
+                    for dependency in row_property.free_variables():
+                        affected_strategy = strategies[dependency]
+                        assert isinstance(affected_strategy, SymbolicIntegerStrategy)
+                        new_min_value = list(affected_strategy.min_value)
+                        new_min_value.extend(strategy.min_value)
+                        strategies[dependency] = SymbolicIntegerStrategy(
+                            var_id=affected_strategy.var_id,
+                            min_value=new_min_value,
+                            max_value=affected_strategy.max_value,
+                            filters=affected_strategy.filters
+                        )
+                elif isinstance(row_property.identifier, ast.Lt):
+                    for dependency in row_property.free_variables():
+                        affected_strategy = strategies[dependency]
+                        assert isinstance(affected_strategy, SymbolicIntegerStrategy)
+                        new_min_value = list(affected_strategy.min_value)
+                        new_min_value.extend([
+                            f'{int(arg) + 1}' if arg.isnumeric() else f'{arg} + 1'
+                            for arg in strategy.min_value
+                        ])
+                        strategies[dependency] = SymbolicIntegerStrategy(
+                            var_id=affected_strategy.var_id,
+                            min_value=new_min_value,
+                            max_value=affected_strategy.max_value,
+                            filters=affected_strategy.filters
+                        )
+                elif isinstance(row_property.identifier, ast.GtE):
+                    for dependency in row_property.free_variables():
+                        affected_strategy = strategies[dependency]
+                        assert isinstance(affected_strategy, SymbolicIntegerStrategy)
+                        new_max_value = list(affected_strategy.max_value)
+                        new_max_value.extend(strategy.max_value)
+                        strategies[dependency] = SymbolicIntegerStrategy(
+                            var_id=affected_strategy.var_id,
+                            min_value=affected_strategy.min_value,
+                            max_value=new_max_value,
+                            filters=affected_strategy.filters
+                        )
+                elif isinstance(row_property.identifier, ast.Gt):
+                    for dependency in row_property.free_variables():
+                        affected_strategy = strategies[dependency]
+                        assert isinstance(affected_strategy, SymbolicIntegerStrategy)
+                        new_max_value = list(affected_strategy.max_value)
+                        new_max_value.extend([
+                            f'{int(arg) - 1}' if arg.isnumeric() else f'{arg} - 1'
+                            for arg in strategy.max_value
+                        ])
+                        strategies[dependency] = SymbolicIntegerStrategy(
+                            var_id=affected_strategy.var_id,
+                            min_value=affected_strategy.min_value,
+                            max_value=new_max_value,
+                            filters=affected_strategy.filters
+                        )
+
     return strategies
 
 
@@ -305,9 +344,9 @@ def _infer_text_strategy(row: generate_symbol_table.Row,
                 elif property_identifier == '>=':
                     min_size.extend(represent_property_arguments(row_property))
                 else:
-                    raise NotImplementedError
+                    raise NotImplementedError  # TODO better exception
             else:
-                raise NotImplementedError
+                raise NotImplementedError  # TODO better exception
         else:
             filters.extend(property_as_lambdas(row_property))
 
@@ -361,7 +400,6 @@ def _infer_from_regex_strategy(row: generate_symbol_table.Row,
             full_match = True
         elif property_identifier == 're.match':
             # re.match(r'..', s), we only want the first argument and we don't want any leading/ending \'
-            # regexps.extend([arg[0].strip("\'") for arg in represent_property_arguments(row_property)])
             regexps.extend(
                 [arg.split(',')[0][1:] for arg in represent_property_arguments(row_property)])  # TODO better way?
             full_match = True

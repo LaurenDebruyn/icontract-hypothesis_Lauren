@@ -1,6 +1,4 @@
 from icontract import require
-from typing import List, Tuple, Any, Dict
-import regex as re
 
 
 @require(lambda n1: n1 > 0)
@@ -31,4 +29,29 @@ def base_4(n1: int, n2: int, n3: int):
 
 @require(lambda n1, n2: (n1, n2) > (0, 0))
 def base_5(n1: int, n2: int):
+    pass
+
+
+@require(lambda n1, n2: n1 + 10 >= 0 and n1 + 10 <= n2 - 10 <= 100)
+def base_6(n1: int, n2: int):
+    pass
+
+
+@require(lambda n1, n2: n1 >= 0 and n1 <= n2)
+def base_7(n1: int, n2: int):
+    pass
+
+
+@require(lambda n1, n2: n1 >= 0 and n1 < n2)
+def base_8(n1: int, n2: int):
+    pass
+
+
+@require(lambda n1, n2: n1 <= 100 and n1 >= n2)
+def base_9(n1: int, n2: int):
+    pass
+
+
+@require(lambda n1, n2: n1 <= 100 and n1 > n2)
+def base_10(n1: int, n2: int):
     pass

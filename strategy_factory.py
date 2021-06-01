@@ -1,15 +1,12 @@
 import ast
 import inspect
-import textwrap
 import typing
 from dataclasses import dataclass
 from typing import Callable, Union, Dict, Optional, Tuple, List
 
-import astunparse
+import astunparse  # TODO replace by astor
 import black
 import networkx as nx
-import matplotlib.pyplot as plt
-from icontract import require
 
 from icontract_hypothesis_Lauren.generate_symbol_table import Table, generate_symbol_table, print_pretty_table, \
     generate_dag_from_table
@@ -71,7 +68,6 @@ class StrategyFactory:
         type_hints = ", ".join(self._get_type_hints())
 
         composite_strategy = f"@hypothesis.strategies.composite\ndef strategy_{self.func.__name__}(draw) -> Tuple[{type_hints}]:\n"
-        # for var_id, strategy in strategies.items():
         for var_id in ordered_var_ids:
             strategy = strategies[var_id]
             composite_strategy += f"{tab}{var_id} = draw({strategy.represent()})\n"
@@ -82,59 +78,3 @@ class StrategyFactory:
         composite_strategy += f"{tab}return "
         composite_strategy += ", ".join(self._arguments_original_order())
         return black.format_str(composite_strategy, mode=black.FileMode())
-
-
-@require(lambda n1, n2: n1 > n2 > 4)
-@require(lambda n1: n1 < 100)
-@require(lambda n1, n4: n1 < n4)
-@require(lambda n2, n3: n2 < 300+n3)
-@require(lambda n1, n3, n4: n3 < n4)
-@require(lambda s: s.startswith("abc"))
-@require(lambda lst: len(lst) > 0)
-def func(n1: int, n2: int, n3: int, n4: int, s: str, lst: List[int]) -> None:
-    pass
-
-
-@require(lambda lst: all(item > 0 for item in lst))
-@require(lambda lst: all(item < 10 for item in lst))
-def func_2(lst: List[int]):
-    pass
-
-import regex as re
-
-@require(lambda lst: all(re.match(r'test', item) for item in lst))
-def func_3(lst: List[str]):
-    pass
-
-
-@require(lambda lst: all(all(len(sub_sub_list) > 2 and (all(item > 10 for item in sub_sub_list)) for sub_sub_list in sub_list) for sub_list in lst))
-def func_4(lst: List[List[List[int]]]):
-    pass
-
-
-@require(lambda lst: all(all(len(sub_sub_list) > 2 for sub_sub_list in sub_list) for sub_list in lst))
-def func_5(lst: List[List[List[int]]]):
-    pass
-
-
-@require(lambda lst, n1: all(item >= n1 for item in lst))
-def func_6(lst: List[int], n1: int):
-    pass
-
-
-@require(lambda n1, n2: n1 >= 0 and n1 < n2)
-def func_7(n1: int, n2: int):
-    pass
-
-
-if __name__ == '__main__':
-    strategy_factory = StrategyFactory(func_7)
-    strategy_factory.debug_table()
-    print()
-    print(strategy_factory.generate_composite_strategy())
-    table = strategy_factory.generate_property_table_without_failed_contracts()
-    for row in table.get_rows():
-        print(table.get_dependencies(row))
-    # nx.draw(generate_dag_from_table(strategy_factory.generate_property_table_without_failed_contracts()),
-    #        with_labels=True)
-    # plt.show()

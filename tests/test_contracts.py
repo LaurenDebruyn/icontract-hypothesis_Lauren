@@ -1,12 +1,6 @@
-from icontract import require
-from typing import List, Tuple, Dict, Optional, Union
-from fractions import Fraction
-from datetime import date
-import regex as re
 from contracts import contracts
-from generate_symbol_table import generate_symbol_table
+from icontract_hypothesis_Lauren.generate_symbol_table import generate_symbol_table
 import unittest
-from decimal import Decimal
 
 """
 Category 1: trivial contracts 

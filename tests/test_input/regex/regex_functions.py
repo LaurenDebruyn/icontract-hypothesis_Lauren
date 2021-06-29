@@ -20,3 +20,21 @@ TEST_RE = re.compile(r'.*')
 @require(lambda batch: all(TEST_RE.match(line) for line in batch))
 def base_re_match_compiled(batch: List[str]):
     pass
+
+
+# TODO
+@require(lambda s: re.match(r'test', s) and len(s) > 2)
+def base_filter(s: str):
+    pass
+
+
+# TODO
+@require(lambda s: s.contains('s33l'))
+def base_contains(s: str):
+    pass
+
+
+# TODO
+@require(lambda s: s.startswith('abc') and s.endswith('xyz'))
+def base_startswith_endswith(s: str):
+    pass

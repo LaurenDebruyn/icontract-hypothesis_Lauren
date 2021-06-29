@@ -179,6 +179,8 @@ def generate_strategies(table: generate_symbol_table.Table):
         if row.kind == generate_symbol_table.Kind.BASE:
             strategies[row.var_id] = _infer_strategy(row, table)
     # TODO fix dependencies
+    # TODO: remove nx, implement Tarjan's algorithm ourselves --> see mristin,
+    #   https://github.com/aas-core-works/abnf-to-regexp
     dependency_graph = nx.topological_sort(
         icontract_hypothesis_Lauren.generate_symbol_table.generate_dag_from_table(table)
     )
@@ -273,8 +275,8 @@ def _infer_int_strategy(row: generate_symbol_table.Row,
     filters: List[Lambda] = []
 
     for property_identifier, row_property in row.properties.items():
-
         if property_identifier == '<':
+            # TODO only need ast, not whole property
             row_property_decremented = decrement_property(row_property)
             max_value_constraints.extend(represent_property_arguments(row_property_decremented))
         elif property_identifier == '<=':

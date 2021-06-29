@@ -64,3 +64,27 @@ def link_gt(s: str) -> None:
 @require(lambda s: len(s) >= 100)
 def link_gte(s: str) -> None:
     pass
+
+
+# TODO
+@require(lambda s: s.isdigit() and s.isnumeric() and s.isdecimal())
+def base_isdigit_isnumeric_isdecimal(s: str):
+    pass
+
+
+# TODO
+@require(lambda s: s.alnum() and s.alpha())
+def base_isalnum_isalpha(s: str):
+    pass
+
+
+# TODO
+@require(lambda s: s.isnumeric() and len(s) > 5)
+def base_isnumeric_len(s: str):
+    pass
+
+
+# TODO
+@require(lambda s: len(s) <=10 and len(s) > 5)
+def link_len(s: str):
+    pass

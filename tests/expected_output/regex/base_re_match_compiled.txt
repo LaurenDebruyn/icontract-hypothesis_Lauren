@@ -1,6 +1,8 @@
 @hypothesis.strategies.composite
-def strategy_base_re_match(draw) -> Tuple[str]:
+def strategy_base_re_match_compiled(draw) -> Tuple[List[str]]:
     s = draw(
-        hypothesis.strategies.from_regex(regex=TEST_RE, fullmatch=True)
+        hypothesis.strategies.lists(
+            elements=hypothesis.strategies.from_regex(regex=r".*", fullmatch=True)
+        )
     )
     return s

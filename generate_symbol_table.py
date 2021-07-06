@@ -56,7 +56,7 @@ class PropertyArgument(DBC):
 class Property(DBC):
     identifier: ast.expr
     property_arguments: List[PropertyArgument]
-    left_function_call: Optional[str]
+    left_function_call: Optional[str]  # TODO turn this into
     var_id: str
     is_routine: bool
     var_is_caller: bool
@@ -85,54 +85,6 @@ def add_property_arguments_to_property(prop: Property, property_arguments: List[
                     is_routine=prop.is_routine,
                     var_is_caller=prop.var_is_caller)
 
-# TODO: code smell -- this is manipulation of the table ("post-processing"), not the generation of the table.
-# TODO: move somewhere else?
-def increment_property(prop: Property) -> Property:
-    new_property_arguments = []
-    for property_argument in prop.property_arguments:
-        old_argument = property_argument.argument[0]
-        if isinstance(old_argument, ast.Constant):
-            old_argument.value = int(old_argument.value) + 1
-            new_property_arguments.append(PropertyArgument((old_argument,),
-                                                           property_argument.free_variables))
-        else:
-            new_property_arguments.append(PropertyArgument((ast.BinOp(property_argument.argument[0], ast.Add(),  # noqa
-                                                                      ast.Constant(1, lineno=0, col_offset=0,
-                                                                                   kind=None),
-                                                                      lineno=0, col_offset=0, kind=None),),
-                                                           property_argument.free_variables))
-
-    return Property(identifier=prop.identifier,
-                    property_arguments=new_property_arguments,
-                    left_function_call=prop.left_function_call,
-                    var_id=prop.var_id,
-                    is_routine=prop.is_routine,
-                    var_is_caller=prop.var_is_caller)
-
-
-# TODO: see increment property
-# TODO: consider refactoring this into: decrement_ast_expr(node: ast.expr)
-def decrement_property(prop: Property) -> Property:
-    new_property_arguments = []
-    for property_argument in prop.property_arguments:
-        old_argument = property_argument.argument[0]
-        if isinstance(old_argument, ast.Constant):
-            old_argument.value = int(old_argument.value) - 1
-            new_property_arguments.append(PropertyArgument((old_argument,),
-                                                           property_argument.free_variables))
-        else:
-            new_property_arguments.append(PropertyArgument((ast.BinOp(property_argument.argument[0], ast.Sub(),  # noqa
-                                                                      ast.Constant(1, lineno=0, col_offset=0,
-                                                                                   kind=None),
-                                                                      lineno=0, col_offset=0, kind=None),),
-                                                           property_argument.free_variables))
-    return Property(identifier=prop.identifier,
-                    property_arguments=new_property_arguments,
-                    left_function_call=prop.left_function_call,
-                    var_id=prop.var_id,
-                    is_routine=prop.is_routine,
-                    var_is_caller=prop.var_is_caller)
-
 
 def represent_property_identifier(prop: Property) -> str:
     if isinstance(prop.identifier, ast.operator) or isinstance(prop.identifier, ast.cmpop):
@@ -152,13 +104,16 @@ def represent_property_identifier(prop: Property) -> str:
     return identifier_str
 
 
-# TODO: property_to_lambdas?
-def property_as_lambdas(prop: Property) -> List[Lambda]:
+def property_to_lambdas(prop: Property) -> List[Lambda]:
     identifier_str = represent_property_identifier(prop)
 
     var_id_str = prop.var_id
+    # TODO for len of regex, it goes wrong -> var_id_str becomes len(len(s))
     if prop.left_function_call:
-        var_id_str = f"{prop.left_function_call}({var_id_str})"
+        pattern = f"{prop.left_function_call}\((.*)\)"  # noqa
+        m = re.fullmatch(pattern, var_id_str)
+        var_id_str = m.group(1)
+        # TODO OLD: var_id_str = f"{prop.left_function_call}({var_id_str})"
 
     arguments_str_list = represent_property_arguments(prop)
 
@@ -181,17 +136,29 @@ def property_as_lambdas(prop: Property) -> List[Lambda]:
                 raise Exception  # TODO
     else:
         if prop.property_arguments:
-            result = [
-                f"{var_id_str} {identifier_str} {comparator_str}"
-                for comparator_str in arguments_str_list
-            ]
+            if prop.left_function_call:
+                result = [
+                    f"{prop.left_function_call}({var_id_str}) {identifier_str} {comparator_str}"
+                    for comparator_str in arguments_str_list
+                ]
+            else:
+                result = [
+                    f"{var_id_str} {identifier_str} {comparator_str}"
+                    for comparator_str in arguments_str_list
+                ]
         else:
             raise Exception  # TODO
 
-    free_variables_list = [
-        arg.free_variables if prop.var_id in arg.free_variables else arg.free_variables + [prop.var_id]
-        for arg in prop.property_arguments
-    ]
+    if prop.left_function_call:
+        free_variables_list = [
+            arg.free_variables if var_id_str in arg.free_variables else arg.free_variables + [var_id_str]
+            for arg in prop.property_arguments
+        ]
+    else:
+        free_variables_list = [
+            arg.free_variables if prop.var_id in arg.free_variables else arg.free_variables + [prop.var_id]
+            for arg in prop.property_arguments
+        ]
 
     # TODO this can be done better
     if free_variables_list:
@@ -205,6 +172,7 @@ def property_as_lambdas(prop: Property) -> List[Lambda]:
     ]
 
 
+# TODO rename to 'property_to_str'?
 def represent_property(prop: Property) -> str:
     arguments_str_list = represent_property_arguments(prop)  # TODO better naming
 
@@ -226,12 +194,13 @@ def represent_property(prop: Property) -> str:
     else:
         return f"({set()}, {set()})"
 
-# TODO: inline this method (better if not used often) 
+
+# TODO: inline this method (better if not used often)
 #   or split it into: represent_lambdas, property_to_lambdas?
 def represent_property_as_lambdas(prop: Property) -> str:
     return ", ".join([
         str(property_lambda)
-        for property_lambda in property_as_lambdas(prop)
+        for property_lambda in property_to_lambdas(prop)
     ])
 
 
@@ -260,6 +229,7 @@ def represent_property_argument(property_argument: PropertyArgument) -> str:
         return argument_item_str_list[0]
     else:
         return "(" + ", ".join(argument_item_str_list) + ")"
+
 
 # TODO: use property_arguments as arg instead of prop
 def represent_property_arguments(prop: Property) -> List[str]:
@@ -328,9 +298,13 @@ class Row:
             dependencies[property_identifier] = dependencies[property_identifier].union(prop.free_variables())
         return dependencies
 
+
 class Table:
-    def __init__(self)->None:
-        self._rows = []  # type: List[Row]
+
+    _rows: List[Row]
+
+    def __init__(self) -> None:
+        self._rows = []
 
     def get_rows(self) -> List[Row]:
         return self._rows
@@ -379,6 +353,7 @@ def extract_variables_from_expression(root: ast.expr, function_args_hints: Dict[
     free_symbols = set(sorted({node.id for node in ast.walk(root) if isinstance(node, ast.Name)}))
     free_symbols = free_symbols.intersection(function_args_hints.keys())
     return free_symbols
+
 
 # TODO: see if astor could replace this function? Or at least use it under the hood.
 def visualize_operator(op: Union[ast.operator, ast.cmpop]) -> str:
@@ -488,7 +463,8 @@ class Evaluator(ast.NodeTransformer):
             # value = ast.literal_eval(node)
             value = eval(f'{node.left.n} {self.ops[type(node.op)]} {node.right.n}')  # noqa
             return ast.Num(n=value)
-        if isinstance(node.left, ast.BinOp) and isinstance(node.right, ast.Num) and isinstance(node.left.right, ast.Num):
+        if isinstance(node.left, ast.BinOp) and isinstance(node.right, ast.Num) and isinstance(node.left.right,
+                                                                                               ast.Num):
             if isinstance(node.left.op, ast.Sub):  # or isinstance(node.left.op, ast.Add):
                 value = eval(f'{node.left.right.n} + {node.right.n}')
                 if value == 0:
@@ -574,7 +550,7 @@ def _parse_single_compare(expr: ast.Compare,
                                                  )],
             left_function_call='len',
             var_id=var_id,
-            is_routine=True,
+            is_routine=False,  # TODO is this correct? is_routine=True,
             var_is_caller=False
         )
     # format: LIST[INDEX] COMPARISON VALUE
@@ -730,20 +706,35 @@ def parse_attribute(expr: ast.Call, condition: Callable[..., Any], function_args
     else:
         var_id = variables.pop()
         var_is_caller = False
+
+    # TODO added this piece, is this correct? (run tests!)
+    identifier = expr.func
+    property_arguments = [PropertyArgument(argument=tuple(expr.args, ),
+                                           free_variables=list(variables))]
+    attribute_str = _visualize_expression(attribute)
+    # if match := MATCH_RE.match(_visualize_expression(identifier)):
+    if expr.func.attr == 'match' and not attribute_str == 're':
+        callee_recomputed, recomputed = _recompute(condition=condition, node=expr.func.value)
+        if recomputed and isinstance(callee_recomputed, re.Pattern):
+            identifier.value.id = 're'
+            attribute_str = 're'
+            property_arguments = [PropertyArgument(argument=tuple([ast.Constant(callee_recomputed.pattern),
+                                                                   property_arguments[0].argument[0]]),
+                                                   free_variables=[])]
+        else:
+            raise Exception  # TODO better exception
+
     return [Row(var_id,
                 Kind.BASE,
                 function_args_hints[var_id],
                 'dummy_function',
                 None,
-                {_visualize_expression(attribute): Property(identifier=expr.func,
-                                                            property_arguments=[
-                                                                PropertyArgument(argument=tuple(expr.args, ),
-                                                                                 free_variables=list(variables))
-                                                            ],
-                                                            left_function_call=None,
-                                                            var_id=attribute.id,
-                                                            is_routine=True,
-                                                            var_is_caller=var_is_caller)})]
+                {attribute_str: Property(identifier=identifier,  # expr.func,
+                                         property_arguments=property_arguments,
+                                         left_function_call=None,
+                                         var_id=attribute.id,
+                                         is_routine=True,
+                                         var_is_caller=var_is_caller)})]
 
 
 @require(lambda expr:

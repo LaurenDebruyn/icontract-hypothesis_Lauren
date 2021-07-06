@@ -1,5 +1,7 @@
 @hypothesis.strategies.composite
 def strategy_base_8(draw) -> Tuple[int, int]:
-    n2 = draw(hypothesis.strategies.integers(min_value=1))
-    n1 = draw(hypothesis.strategies.integers(min_value=0, max_value=(n2 - 1)))
+    n2 = draw(hypothesis.strategies.integers())
+    n1 = draw(
+        hypothesis.strategies.integers(max_value=(n2 - 1)).filter(lambda n1: n1 >= 0)
+    )
     return n1, n2

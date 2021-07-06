@@ -51,8 +51,12 @@ class StrategyFactory:
         return failed_contracts, table
 
     def generate_strategies(self) -> Dict[str, Union[SymbolicIntegerStrategy, SymbolicTextStrategy, SymbolicFromRegexStrategy]]:
-        table = self.generate_property_table_without_failed_contracts()
-        return generate_strategies(table)
+        try:
+            table = self.generate_property_table_without_failed_contracts()
+            strategies = generate_strategies(table)
+        except NotImplementedError as e:
+            raise e
+        return strategies
 
     def debug_table(self):
         print_pretty_table(self.generate_property_table_without_failed_contracts())

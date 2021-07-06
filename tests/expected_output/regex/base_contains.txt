@@ -1,0 +1,4 @@
+@hypothesis.strategies.composite
+def strategy_base_contains(draw) -> Tuple[str]:
+    s = draw(hypothesis.strategies.from_regex(regex=r"s33l"))
+    return s

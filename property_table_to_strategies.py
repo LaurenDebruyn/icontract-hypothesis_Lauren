@@ -2,15 +2,15 @@ import abc
 import ast
 import typing
 from dataclasses import dataclass
+from itertools import chain
+import regex as re
 from typing import List, Union, Dict, Tuple, Set, Sequence, Callable, Hashable, Optional
 
-import networkx as nx
 from hypothesis.strategies._internal.strategies import Ex
 
-import icontract_hypothesis_Lauren.generate_symbol_table
 from icontract_hypothesis_Lauren import generate_symbol_table
-from icontract_hypothesis_Lauren.generate_symbol_table import Lambda, property_as_lambdas, \
-    represent_property_arguments, decrement_property, increment_property, add_property_arguments_to_property
+from icontract_hypothesis_Lauren.generate_symbol_table import Lambda, property_to_lambdas, \
+    represent_property_arguments, Property, PropertyArgument
 
 
 ##
@@ -178,74 +178,55 @@ def generate_strategies(table: generate_symbol_table.Table):
     for row in table.get_rows():
         if row.kind == generate_symbol_table.Kind.BASE:
             strategies[row.var_id] = _infer_strategy(row, table)
-    # TODO fix dependencies
     # TODO: remove nx, implement Tarjan's algorithm ourselves --> see mristin,
     #   https://github.com/aas-core-works/abnf-to-regexp
-    dependency_graph = nx.topological_sort(
-        icontract_hypothesis_Lauren.generate_symbol_table.generate_dag_from_table(table)
-    )
-    for row_id in dependency_graph:
-        row = table.get_row_by_var_id(row_id)
-        if row.type == int:
-            strategy = strategies[row_id]
-            assert isinstance(strategy, SymbolicIntegerStrategy)
-            for row_property in row.properties.values():
-                if isinstance(row_property.identifier, ast.LtE):
-                    for dependency in row_property.free_variables():
-                        affected_strategy = strategies[dependency]
-                        assert isinstance(affected_strategy, SymbolicIntegerStrategy)
-                        new_min_value = list(affected_strategy.min_value)
-                        new_min_value.extend(strategy.min_value)
-                        strategies[dependency] = SymbolicIntegerStrategy(
-                            var_id=affected_strategy.var_id,
-                            min_value=new_min_value,
-                            max_value=affected_strategy.max_value,
-                            filters=affected_strategy.filters
-                        )
-                elif isinstance(row_property.identifier, ast.Lt):
-                    for dependency in row_property.free_variables():
-                        affected_strategy = strategies[dependency]
-                        assert isinstance(affected_strategy, SymbolicIntegerStrategy)
-                        new_min_value = list(affected_strategy.min_value)
-                        new_min_value.extend([
-                            f'{int(arg) + 1}' if arg.isnumeric() else f'{arg} + 1'
-                            for arg in strategy.min_value
-                        ])
-                        strategies[dependency] = SymbolicIntegerStrategy(
-                            var_id=affected_strategy.var_id,
-                            min_value=new_min_value,
-                            max_value=affected_strategy.max_value,
-                            filters=affected_strategy.filters
-                        )
-                elif isinstance(row_property.identifier, ast.GtE):
-                    for dependency in row_property.free_variables():
-                        affected_strategy = strategies[dependency]
-                        assert isinstance(affected_strategy, SymbolicIntegerStrategy)
-                        new_max_value = list(affected_strategy.max_value)
-                        new_max_value.extend(strategy.max_value)
-                        strategies[dependency] = SymbolicIntegerStrategy(
-                            var_id=affected_strategy.var_id,
-                            min_value=affected_strategy.min_value,
-                            max_value=new_max_value,
-                            filters=affected_strategy.filters
-                        )
-                elif isinstance(row_property.identifier, ast.Gt):
-                    for dependency in row_property.free_variables():
-                        affected_strategy = strategies[dependency]
-                        assert isinstance(affected_strategy, SymbolicIntegerStrategy)
-                        new_max_value = list(affected_strategy.max_value)
-                        new_max_value.extend([
-                            f'{int(arg) - 1}' if arg.isnumeric() else f'{arg} - 1'
-                            for arg in strategy.max_value
-                        ])
-                        strategies[dependency] = SymbolicIntegerStrategy(
-                            var_id=affected_strategy.var_id,
-                            min_value=affected_strategy.min_value,
-                            max_value=new_max_value,
-                            filters=affected_strategy.filters
-                        )
-
+    # TODO: check for cycles?
     return strategies
+
+
+def _increment_property(prop: Property) -> Property:
+    new_property_arguments = []
+    for property_argument in prop.property_arguments:
+        old_argument = property_argument.argument[0]
+        if isinstance(old_argument, ast.Constant):
+            old_argument.value = int(old_argument.value) + 1
+            new_property_arguments.append(PropertyArgument((old_argument,),
+                                                           property_argument.free_variables))
+        else:
+            new_property_arguments.append(PropertyArgument((ast.BinOp(property_argument.argument[0], ast.Add(),  # noqa
+                                                                      ast.Constant(1, lineno=0, col_offset=0,
+                                                                                   kind=None),
+                                                                      lineno=0, col_offset=0, kind=None),),
+                                                           property_argument.free_variables))
+
+    return Property(identifier=prop.identifier,
+                    property_arguments=new_property_arguments,
+                    left_function_call=prop.left_function_call,
+                    var_id=prop.var_id,
+                    is_routine=prop.is_routine,
+                    var_is_caller=prop.var_is_caller)
+
+
+def _decrement_property(prop: Property) -> Property:
+    new_property_arguments = []
+    for property_argument in prop.property_arguments:
+        old_argument = property_argument.argument[0]
+        if isinstance(old_argument, ast.Constant):
+            old_argument.value = int(old_argument.value) - 1
+            new_property_arguments.append(PropertyArgument((old_argument,),
+                                                           property_argument.free_variables))
+        else:
+            new_property_arguments.append(PropertyArgument((ast.BinOp(property_argument.argument[0], ast.Sub(),  # noqa
+                                                                      ast.Constant(1, lineno=0, col_offset=0,
+                                                                                   kind=None),
+                                                                      lineno=0, col_offset=0, kind=None),),
+                                                           property_argument.free_variables))
+    return Property(identifier=prop.identifier,
+                    property_arguments=new_property_arguments,
+                    left_function_call=prop.left_function_call,
+                    var_id=prop.var_id,
+                    is_routine=prop.is_routine,
+                    var_is_caller=prop.var_is_caller)
 
 
 def _infer_strategy(row: generate_symbol_table.Row, table: generate_symbol_table.Table) -> SymbolicStrategy:
@@ -270,35 +251,69 @@ def _infer_strategy(row: generate_symbol_table.Row, table: generate_symbol_table
 
 def _infer_int_strategy(row: generate_symbol_table.Row,
                         table: generate_symbol_table.Table) -> SymbolicIntegerStrategy:
-    max_value_constraints: List[str] = []  # TODO rename
-    min_value_constraints: List[str] = []
+    # TODO
+    # max_value: List[str] = []
+    # min_value: List[str] = []
+    max_value: List[Property] = []
+    min_value: List[Property] = []
     filters: List[Lambda] = []
+
+    contains_max_value_free_variables = False
+    contains_min_value_free_variables = False
 
     for property_identifier, row_property in row.properties.items():
         if property_identifier == '<':
             # TODO only need ast, not whole property
-            row_property_decremented = decrement_property(row_property)
-            max_value_constraints.extend(represent_property_arguments(row_property_decremented))
+            row_property_decremented = _decrement_property(row_property)
+            row_property_decremented.identifier = '<='
+            max_value.append(row_property_decremented)
+            if row_property.free_variables():
+                contains_max_value_free_variables = True
         elif property_identifier == '<=':
-            max_value_constraints.extend(represent_property_arguments(row_property))
+            max_value.append(row_property)
+            if row_property.free_variables():
+                contains_max_value_free_variables = True
         elif property_identifier == '>':
-            row_property_incremented = increment_property(row_property)
-            min_value_constraints.extend(represent_property_arguments(row_property_incremented))
+            row_property_incremented = _increment_property(row_property)
+            row_property_incremented.identifier = '>='
+            min_value.append(row_property_incremented)
+            if row_property.free_variables():
+                contains_min_value_free_variables = True
         elif property_identifier == '>=':
-            min_value_constraints.extend(represent_property_arguments(row_property))
+            min_value.append(row_property)
+            if row_property.free_variables():
+                contains_min_value_free_variables = True
         else:
-            filters.extend(property_as_lambdas(row_property))
+            filters.extend(property_to_lambdas(row_property))
 
+    # TODO can I fix dependencies here?
+    # TODO make this one variable
+    if contains_max_value_free_variables or contains_min_value_free_variables:
+        # turn min values into filters
+        for prop in min_value:
+            filters.extend(property_to_lambdas(prop))
+        min_value = []
+    # TODO remove?
+    # elif contains_min_value_free_variables:
+    #     # turn max values into filters
+    #     for prop in max_value:
+    #         filters.extend(property_to_lambdas(prop))
+    #     max_value = []
+
+    min_value_deserialized: List[str] = list(chain(*[represent_property_arguments(prop) for prop in min_value]))
+    max_value_deserialized: List[str] = list(chain(*[represent_property_arguments(prop) for prop in max_value]))
+
+    # TODO correct to do this afterwards?
     for link_row in table.get_rows():
         if link_row.parent == row.var_id and link_row.kind == generate_symbol_table.Kind.LINK:
             link_strategy = _infer_int_strategy(link_row, table)
-            min_value_constraints.extend(link_strategy.min_value)
-            max_value_constraints.extend(link_strategy.max_value)
+            min_value_deserialized.extend(link_strategy.min_value)
+            max_value_deserialized.extend(link_strategy.max_value)
             filters.extend(link_strategy.filters)
 
     return SymbolicIntegerStrategy(var_id=row.var_id,
-                                   min_value=min_value_constraints,
-                                   max_value=max_value_constraints,
+                                   min_value=min_value_deserialized,
+                                   max_value=max_value_deserialized,
                                    filters=filters)
 
 
@@ -336,12 +351,12 @@ def _infer_text_strategy(row: generate_symbol_table.Row,
             link_property = row.var_id[:-(len(row.parent) + 2)]
             if link_property == 'len':
                 if property_identifier == '<':
-                    row_property_decremented = decrement_property(row_property)
+                    row_property_decremented = _decrement_property(row_property)
                     max_size.extend(represent_property_arguments(row_property_decremented))
                 elif property_identifier == '<=':
                     max_size.extend(represent_property_arguments(row_property))
                 elif property_identifier == '>':
-                    row_property_increment = increment_property(row_property)
+                    row_property_increment = _increment_property(row_property)
                     min_size.extend(represent_property_arguments(row_property_increment))
                 elif property_identifier == '>=':
                     min_size.extend(represent_property_arguments(row_property))
@@ -350,7 +365,7 @@ def _infer_text_strategy(row: generate_symbol_table.Row,
             else:
                 raise NotImplementedError  # TODO better exception
         else:
-            filters.extend(property_as_lambdas(row_property))
+            filters.extend(property_to_lambdas(row_property))
 
     for link_row in table.get_rows():
         if link_row.parent == row.var_id and link_row.kind == generate_symbol_table.Kind.LINK:
@@ -405,6 +420,7 @@ def _infer_from_regex_strategy(row: generate_symbol_table.Row,
             regexps.extend(
                 [arg.split(',')[0][1:] for arg in represent_property_arguments(row_property)])  # TODO better way?
             full_match = True
+        # TODO make distinction between match & fullmatch?
         elif property_identifier == 'contains' or property_identifier == 'in':
             regexps.extend([arg.strip("\'") for arg in represent_property_arguments(row_property)])
         elif property_identifier == 'startswith':
@@ -420,19 +436,19 @@ def _infer_from_regex_strategy(row: generate_symbol_table.Row,
             # TODO better way: row_property.left_function_call
             if link_property == 'len':
                 if property_identifier == '<':
-                    filters.extend(property_as_lambdas(row_property))
+                    filters.extend(property_to_lambdas(row_property))
                 elif property_identifier == '<=':
-                    filters.extend(property_as_lambdas(row_property))
+                    filters.extend(property_to_lambdas(row_property))
                 elif property_identifier == '>':
-                    filters.extend(property_as_lambdas(row_property))
+                    filters.extend(property_to_lambdas(row_property))
                 elif property_identifier == '>=':
-                    filters.extend(property_as_lambdas(row_property))
+                    filters.extend(property_to_lambdas(row_property))
                 else:
                     raise NotImplementedError
             else:
                 raise NotImplementedError
         else:
-            filters.extend(property_as_lambdas(row_property))
+            filters.extend(property_to_lambdas(row_property))
 
     for link_row in table.get_rows():
         if link_row.parent == row.var_id and link_row.kind == generate_symbol_table.Kind.LINK:
@@ -469,19 +485,19 @@ def _infer_list_strategy(row: generate_symbol_table.Row, table: generate_symbol_
                 for property_identifier, row_property in other_row.properties.items():
                     if link_property == 'len':
                         if property_identifier == '<':
-                            row_property_decremented = decrement_property(row_property)
+                            row_property_decremented = _decrement_property(row_property)
                             max_size.extend(represent_property_arguments(row_property_decremented))
                         elif property_identifier == '<=':
                             max_size.extend(represent_property_arguments(row_property))
                         elif property_identifier == '>':
-                            row_property_increment = increment_property(row_property)
+                            row_property_increment = _increment_property(row_property)
                             min_size.extend(represent_property_arguments(row_property_increment))
                         elif property_identifier == '>=':
                             min_size.extend(represent_property_arguments(row_property))
                         else:
-                            filters.extend(property_as_lambdas(row_property))
+                            filters.extend(property_to_lambdas(row_property))
                     else:
-                        filters.extend(property_as_lambdas(row_property))
+                        filters.extend(property_to_lambdas(row_property))
             elif other_row.kind == generate_symbol_table.Kind.UNIVERSAL_QUANTIFIER:
                 elements = _infer_strategy(other_row, table)
             else:

@@ -1,0 +1,13 @@
+July 17th - AoC2020
+
+total # tests: 108
+# successful runs: 29
+# assume free: 29
+# filter free: 27
+
+July 17th - ETHz
+
+total # tests: 81
+# successful runs: 18.0
+# assume free: 18.0
+# filter free: 18.0

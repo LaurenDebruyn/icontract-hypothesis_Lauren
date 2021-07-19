@@ -41,3 +41,13 @@ def universal_filter_1(lst: List[str]):
 @require(lambda lst: all(all(len(sub_sub_list) > 2 for sub_sub_list in sub_list) for sub_list in lst))
 def universal_nested_link_2(lst: List[List[List[int]]]):
     pass
+
+
+@require(lambda lst: len(set(lst)) == len(lst))
+def is_unique(lst: List[int]):
+    pass
+
+
+@require(lambda lst: 0 not in lst)
+def not_in(lst: List[int]):
+    pass

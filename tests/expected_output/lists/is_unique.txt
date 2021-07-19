@@ -1,0 +1,8 @@
+@hypothesis.strategies.composite
+def strategy_is_unique(draw) -> Tuple[List[int]]:
+    lst = draw(
+        hypothesis.strategies.lists(
+            elements=hypothesis.strategies.integers(), unique=True
+        )
+    )
+    return lst

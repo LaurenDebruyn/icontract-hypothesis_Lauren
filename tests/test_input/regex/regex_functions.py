@@ -3,6 +3,8 @@ from typing import List
 from icontract import require
 import regex as re
 
+TEST_RE = re.compile(r'.*')
+
 
 @require(lambda s: s.startswith('abc'))
 def base_startswith(s: str) -> None:
@@ -14,11 +16,18 @@ def base_re_match(s: str) -> None:
     pass
 
 
-TEST_RE = re.compile(r'.*')
+@require(lambda s: TEST_RE.match(s))
+def base_re_match_compiled(s: str) -> None:
+    pass
+
+
+@require(lambda lst: all(re.match(r'(+|-)?[1-9][0-9]*', s) for s in lst))
+def universal_re_match(lst: List[str]) -> None:
+    pass
 
 
 @require(lambda s: all(TEST_RE.match(line) for line in s))
-def base_re_match_compiled(s: List[str]):
+def universal_re_match_compiled(s: List[str]):
     pass
 
 

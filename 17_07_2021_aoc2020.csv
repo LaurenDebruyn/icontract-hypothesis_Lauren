@@ -1,0 +1,109 @@
+,module,function_name,runs,assume_free,filter_free,failed_health_check,exceptions
+0,day_10_adapter_array,cast,False,False,False,False,<class 'AttributeError'> :     'NoneType' object has no attribute 'type'
+1,day_10_adapter_array,compute_result,False,False,False,False,<class 'NotImplementedError'> :     
+2,day_10_adapter_array,histogram_differences,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     An error has occurred during generation of property table
+3,day_10_adapter_array,parse,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     iterating over lines is not supported
+4,day_11_seating_system,apply,False,False,False,False,<class 'NotImplementedError'> :     
+5,day_11_seating_system,apply_until_stable,False,False,False,False,<class 'NotImplementedError'> :     
+6,day_11_seating_system,count_occupied,False,False,False,False,<class 'NotImplementedError'> :     
+7,day_11_seating_system,list_neighbourhood,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     An error has occurred during generation of property table
+8,day_11_seating_system,parse_layout,True,True,True,False,
+9,day_11_seating_system,repr_layout,False,False,False,False,<class 'NotImplementedError'> :     
+10,day_12_rain_risk,parse_input,False,False,False,False,"<class 'black.InvalidInput'> :     Cannot parse: 3:101:     puzzle_input = draw(hypothesis.strategies.text().filter(lambda re: re.fullmatch(([NSEWLRF][0-9]+(\n[NSEWLRF][0-9]+)*, puzzle_input))))"
+11,day_12_rain_risk,solve,True,True,True,False,
+12,day_12_rain_risk,update_position,False,False,False,False,<class 'NotImplementedError'> :     
+13,day_13_shuttle_search,find_departure,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     iterating over bus_ids is not supported
+14,day_13_shuttle_search,main,False,False,False,False,<class 'black.InvalidInput'> :     Cannot parse: 2:33: def strategy_main(draw) -> Tuple[]:
+15,day_13_shuttle_search,next_departure,True,True,True,False,
+16,day_13_shuttle_search,parse_input,False,False,False,False,<class 'NotImplementedError'> :     
+17,day_14_docking_data,execute,False,False,False,False,<class 'NotImplementedError'> :     
+18,day_14_docking_data,parse_lines,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     An error has occurred during generation of property table
+19,day_14_docking_data,parse_mask,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     An error has occurred during generation of property table
+20,day_14_docking_data,parse_write,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     An error has occurred during generation of property table
+21,day_14_docking_data,sum_memory,False,False,False,False,<class 'NotImplementedError'> :     
+22,day_15_rambunctious_recitation,solve,True,True,True,False,
+23,day_16_ticket_translation,applies,False,False,False,False,<class 'NotImplementedError'> :     
+24,day_16_ticket_translation,compute_error_rate,True,True,True,False,
+25,day_16_ticket_translation,invalid_fields,False,False,False,False,<class 'NotImplementedError'> :     <class 'day_16_ticket_translation.Rule'>
+26,day_16_ticket_translation,list_all_invalid_values,False,False,False,False,<class 'NotImplementedError'> :     <class 'day_16_ticket_translation.Rule'>
+27,day_16_ticket_translation,parse_nearby_tickets,True,True,True,False,
+28,day_16_ticket_translation,parse_rules,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     iterating over lines is not supported
+29,day_17_conway_cubes,apply,False,False,False,False,<class 'NotImplementedError'> :     
+30,day_17_conway_cubes,are_neighbours,False,False,False,False,<class 'NotImplementedError'> :     
+31,day_17_conway_cubes,cast,False,False,False,False,<class 'AttributeError'> :     'NoneType' object has no attribute 'type'
+32,day_17_conway_cubes,count_active,False,False,False,False,<class 'NotImplementedError'> :     
+33,day_17_conway_cubes,list_neighbourhood,False,False,False,False,<class 'NotImplementedError'> :     
+34,day_17_conway_cubes,parse_initial,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     iterating over lines is not supported
+35,day_17_conway_cubes,repr_activity,False,False,False,False,<class 'NotImplementedError'> :     
+36,day_18_operation_order,cast,False,False,False,False,<class 'AttributeError'> :     'NoneType' object has no attribute 'type'
+37,day_18_operation_order,compute,False,False,False,False,<class 'NotImplementedError'> :     
+38,day_18_operation_order,dataclass,False,False,False,False,<class 'AttributeError'> :     'NoneType' object has no attribute 'type'
+39,day_18_operation_order,extract_expression,False,False,False,False,<class 'AssertionError'> :     
+40,day_18_operation_order,parse,True,True,True,False,
+41,day_18_operation_order,serialize,False,False,False,False,<class 'NotImplementedError'> :     
+42,day_19_monster_messages,count_matching_messages,False,False,False,False,<class 'NotImplementedError'> :     
+43,day_19_monster_messages,interpret_rule_0,False,False,False,False,<class 'Exception'> :     
+44,day_19_monster_messages,iterate,False,False,False,False,<class 'NotImplementedError'> :     
+45,day_19_monster_messages,parse_rule,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     An error has occurred during generation of property table
+46,day_19_monster_messages,parse_rules,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     iterating over lines is not supported
+47,day_19_monster_messages,repr_rule_tree,False,False,False,False,<class 'NotImplementedError'> :     
+48,day_1_report_repair,find_pair_with_sum,True,True,True,False,
+49,day_20_jurassic_jigsaw,cast,False,False,False,False,<class 'AttributeError'> :     'NoneType' object has no attribute 'type'
+50,day_20_jurassic_jigsaw,dataclass,False,False,False,False,<class 'AttributeError'> :     'NoneType' object has no attribute 'type'
+51,day_20_jurassic_jigsaw,main,False,False,False,False,<class 'black.InvalidInput'> :     Cannot parse: 2:33: def strategy_main(draw) -> Tuple[]:
+52,day_20_jurassic_jigsaw,overload,False,False,False,False,<class 'AttributeError'> :     'NoneType' object has no attribute 'type'
+53,day_20_jurassic_jigsaw,parse_tile,False,False,False,False,<class 'NotImplementedError'> :     
+54,day_20_jurassic_jigsaw,parse_tiles,True,True,True,False,
+55,day_20_jurassic_jigsaw,place_remaining_tiles,False,False,False,False,<class 'NotImplementedError'> :     
+56,day_20_jurassic_jigsaw,place_tiles,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     An error has occurred during generation of property table
+57,day_20_jurassic_jigsaw,reverse_side,True,True,False,False,
+58,day_20_jurassic_jigsaw,transform_tile,False,False,False,False,<class 'NotImplementedError'> :     
+59,day_21_allergen_assessment,cast,False,False,False,False,<class 'AttributeError'> :     'NoneType' object has no attribute 'type'
+60,day_21_allergen_assessment,find_non_allergenic_ingredients,False,False,False,False,<class 'NotImplementedError'> :     <class 'day_21_allergen_assessment.Entry'>
+61,day_21_allergen_assessment,parse_ingredient_line,False,False,False,False,<class 'NotImplementedError'> :     
+62,day_21_allergen_assessment,serialize_entry,False,False,False,False,<class 'NotImplementedError'> :     
+63,day_21_allergen_assessment,solve,False,False,False,False,<class 'NotImplementedError'> :     <class 'day_21_allergen_assessment.IngredientLine'>
+64,day_22_crab_combat,compute_score,False,False,False,False,<class 'NotImplementedError'> :     
+65,day_22_crab_combat,overload,False,False,False,False,<class 'AttributeError'> :     'NoneType' object has no attribute 'type'
+66,day_22_crab_combat,parse_lines,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     An error has occurred during generation of property table
+67,day_22_crab_combat,play,False,False,False,False,<class 'AssertionError'> :     
+68,day_22_crab_combat,play_a_round,False,False,False,False,<class 'AssertionError'> :     
+69,day_23_crab_cups,crab_move,False,False,False,False,<class 'NotImplementedError'> :     
+70,day_23_crab_cups,cup_circle_to_str,False,False,False,False,<class 'NotImplementedError'> :     
+71,day_23_crab_cups,initialize_cups,False,False,False,False,<class 'NotImplementedError'> :     
+72,day_23_crab_cups,solve_100_steps,False,False,False,False,<class 'NotImplementedError'> :     
+73,day_24_lobby_layout,cell_as_tuple,False,False,False,False,<class 'NotImplementedError'> :     
+74,day_24_lobby_layout,count_flips,False,False,False,False,<class 'NotImplementedError'> :     <enum 'Direction'>
+75,day_24_lobby_layout,follow_directions,False,False,False,False,<class 'NotImplementedError'> :     
+76,day_24_lobby_layout,next_cell,False,False,False,False,<class 'NotImplementedError'> :     
+77,day_24_lobby_layout,parse_line,True,False,True,False,
+78,day_24_lobby_layout,stringify_directions,False,False,False,False,<class 'NotImplementedError'> :     <enum 'Direction'>
+79,day_25_combo_breaker,deduce_encryption_key,True,True,True,False,
+80,day_25_combo_breaker,deduce_loop_size,True,True,True,False,
+81,day_25_combo_breaker,transform,True,True,True,False,
+82,day_2_password_philosophy,verify,False,False,False,False,<class 'NotImplementedError'> :     
+83,day_2_password_philosophy,verify_line,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     An error has occurred during generation of property table
+84,day_3_toboggan_trajectory,cast,False,False,False,False,<class 'AttributeError'> :     'NoneType' object has no attribute 'type'
+85,day_3_toboggan_trajectory,count_trees,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     Only + and - are supported as binary operations in the left-hand side.
+86,day_3_toboggan_trajectory,parse_input,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     iterating over lines is not supported
+87,day_4_passport_processing,blank_line_split,True,True,True,False,
+88,day_4_passport_processing,count_valid,False,False,False,False,<class 'AssertionError'> :     
+89,day_4_passport_processing,is_valid,False,False,False,False,"<class 'NotImplementedError'> :     typing.Tuple[str, str]"
+90,day_4_passport_processing,parse_passport_entries,True,True,False,False,
+91,day_5_binary_boarding,apply,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     Only + and - are supported as binary operations in the left-hand side.
+92,day_5_binary_boarding,determine_column,True,True,True,False,
+93,day_5_binary_boarding,determine_id,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     An error has occurred during generation of property table
+94,day_5_binary_boarding,determine_row,True,True,True,False,
+95,day_5_binary_boarding,determine_row_and_column,True,True,True,False,
+96,day_6_custom_customs,solve,True,True,True,False,
+97,day_7_handy_haversacks,containers,False,False,False,False,<class 'NotImplementedError'> :     
+98,day_7_handy_haversacks,count_containers,False,False,False,False,<class 'NotImplementedError'> :     
+99,day_7_handy_haversacks,directly_contains,False,False,False,False,<class 'NotImplementedError'> :     
+100,day_7_handy_haversacks,main,False,False,False,False,<class 'black.InvalidInput'> :     Cannot parse: 2:33: def strategy_main(draw) -> Tuple[]:
+101,day_7_handy_haversacks,parse_bagexpr,False,False,False,False,"<class 'black.InvalidInput'> :     Cannot parse: 3:77:     text = draw(hypothesis.strategies.text().filter(lambda re: re.fullmatch((\d+ .* bags?, text))))"
+102,day_7_handy_haversacks,parse_rule,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     An error has occurred during generation of property table
+103,day_7_handy_haversacks,parse_rules,False,False,False,False,<class 'NotImplementedError'> :     
+104,day_8_handheld_halting,execute_instructions,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     only zip(..) is allowed as a function in the generator
+105,day_8_handheld_halting,parse,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     iterating over lines is not supported
+106,day_8_handheld_halting,parse_line,False,False,False,False,<class 'icontract_hypothesis_Lauren.generate_symbol_table.GenerationError'> :     An error has occurred during generation of property table
+107,day_9_encoding_error,solve,True,True,True,False,

@@ -8,6 +8,12 @@ from icontract_hypothesis_Lauren.strategy_factory import StrategyFactory
 import unittest
 import textwrap
 
+# TODO
+import icontract
+import re
+
+RE_TEST = re.compile(r'[1-9]*')
+
 
 class IntegerStrategyGeneration(unittest.TestCase):
 
@@ -102,6 +108,14 @@ class ListStrategyGeneration(unittest.TestCase):
         function_name = 'universal_nested_link_2'
         self._execute_end_to_end_test(function_name)
 
+    def test_is_unique(self):
+        function_name = 'is_unique'
+        self._execute_end_to_end_test(function_name)
+
+    def test_not_in(self):
+        function_name = 'not_in'
+        self._execute_end_to_end_test(function_name)
+
     def _execute_failing_end_to_end_test(self, function_name):
         function = getattr(lists_functions, function_name)
         strategy_factory = StrategyFactory(function)
@@ -132,6 +146,14 @@ class RegexStrategyGeneration(unittest.TestCase):
 
     def test_re_match_compiled(self) -> None:
         function_name = 'base_re_match_compiled'
+        self._execute_end_to_end_test(function_name)
+
+    def test_universal_re_match(self) -> None:
+        function_name = 'universal_re_match'
+        self._execute_end_to_end_test(function_name)
+
+    def test_universal_re_match_compiled(self) -> None:
+        function_name = 'universal_re_match_compiled'
         self._execute_end_to_end_test(function_name)
 
     def test_filter(self) -> None:

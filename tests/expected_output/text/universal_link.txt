@@ -1,5 +1,5 @@
 @hypothesis.strategies.composite
 def strategy_universal_link(draw) -> Tuple[str]:
     s = draw(hypothesis.strategies.text())
-    assume(len(set(list(line))) == len(line) for line in s.split("\n"))
+    hypothesis.assume(all(((len(set(list(line))) == len(line)) for line in s.split("\n"))))
     return s

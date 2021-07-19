@@ -78,7 +78,7 @@ class StrategyFactory:
             func_args.append(var_id)
         for failed_contract in failed_contracts:
             failed_contract_str = astunparse.unparse(failed_contract[0]).rstrip('\n')
-            composite_strategy += f"{tab}assume({failed_contract_str})\n"
+            composite_strategy += f"{tab}hypothesis.assume({failed_contract_str})\n"
         composite_strategy += f"{tab}return "
         composite_strategy += ", ".join(self._arguments_original_order())
         return black.format_str(composite_strategy, mode=black.FileMode())

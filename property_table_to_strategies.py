@@ -241,7 +241,8 @@ def _infer_strategy(row: generate_symbol_table.Row, table: generate_symbol_table
     elif isinstance(typing.get_origin(row.type), list) or typing.get_origin(row.type) == list:
         return _infer_list_strategy(row, table)
     else:
-        raise NotImplementedError
+        # TODO infer from_type strategy
+        raise NotImplementedError("Only integers, strings and lists are currently supported")
 
 
 ##
@@ -476,6 +477,12 @@ def _infer_list_strategy(row: generate_symbol_table.Row, table: generate_symbol_
     unique_by: List[UniqueBy] = []
     unique: bool = False
     filters: List[Lambda] = []
+
+    for property_identifier, row_property in row.properties.items():
+        if property_identifier == 'SpecialProperties.IS_UNIQUE':
+            unique = True
+        else:
+            raise NotImplementedError("'is_unique' is currently the only property applying directly to a list.")
 
     for other_row in table.get_rows():
         if other_row.parent == row.var_id:

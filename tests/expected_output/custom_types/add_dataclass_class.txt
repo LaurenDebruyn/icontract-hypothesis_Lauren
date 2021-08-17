@@ -1,0 +1,6 @@
+@hypothesis.strategies.composite
+def strategy_add_dataclass_class(draw) -> Tuple[NumberDataclass, int]:
+    number = draw(hypothesis.strategies.from_type(thing=NumberDataclass))
+    new_number = draw(hypothesis.strategies.integers())
+    hypothesis.assume((number.number <= (1000 - new_number)))
+    return number, new_number

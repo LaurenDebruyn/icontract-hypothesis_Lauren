@@ -1,6 +1,4 @@
 @hypothesis.strategies.composite
 def strategy_base_re_match(draw) -> Tuple[str]:
-    s = draw(
-        hypothesis.strategies.from_regex(regex=r"(+|-)?[1-9][0-9]*", fullmatch=True)
-    )
+    s = draw(hypothesis.strategies.from_regex(regex=r"(+|-)?[1-9][0-9]*"))
     return s

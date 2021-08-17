@@ -1,0 +1,8 @@
+@hypothesis.strategies.composite
+def strategy_link_1(draw) -> Tuple[Set[int]]:
+    a_set = draw(
+        hypothesis.strategies.sets(
+            elements=hypothesis.strategies.integers(), min_size=1
+        )
+    )
+    return a_set

@@ -1,3 +1,5 @@
+from icontract_hypothesis_Lauren.tests.test_input.custom_types import custom_types_functions
+from icontract_hypothesis_Lauren.tests.test_input.sets import sets_functions
 from icontract_hypothesis_Lauren.tests.test_input.text import text_functions
 from icontract_hypothesis_Lauren.tests.test_input.tuples import tuples_functions
 from icontract_hypothesis_Lauren.tests.test_input.dictionaries import dictionaries_functions
@@ -116,6 +118,22 @@ class ListStrategyGeneration(unittest.TestCase):
         function_name = 'not_in'
         self._execute_end_to_end_test(function_name)
 
+    def test_filter_index(self):
+        function_name = 'filter_index'
+        self._execute_end_to_end_test(function_name)
+
+    def test_nested_filter_index(self):
+        function_name = 'nested_filter_index'
+        self._execute_end_to_end_test(function_name)
+
+    def test_complex_linked_filter(self):
+        function_name ='complex_linked_filter'
+        self._execute_end_to_end_test(function_name)
+
+    def test_complex_linked_filter_2(self):
+        function_name = 'complex_linked_filter_2'
+        self._execute_end_to_end_test(function_name)
+
     def _execute_failing_end_to_end_test(self, function_name):
         function = getattr(lists_functions, function_name)
         strategy_factory = StrategyFactory(function)
@@ -125,6 +143,70 @@ class ListStrategyGeneration(unittest.TestCase):
         with open(f'{self._folder_expected_output}{function_name}.txt') as file:
             expected_output = textwrap.dedent(file.read())
         function = getattr(lists_functions, function_name)
+        strategy_factory = StrategyFactory(function)
+        actual_output = textwrap.dedent(strategy_factory.generate_composite_strategy())
+        self.assertEqual(expected_output, actual_output)
+
+
+class SetStrategyGeneration(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls._folder_expected_output = "expected_output/sets/"
+
+    def test_existential_1(self):
+        function_name = 'existential_1'
+        self._execute_failing_end_to_end_test(function_name)
+
+    def test_link_1(self):
+        function_name = 'link_1'
+        self._execute_end_to_end_test(function_name)
+
+    def test_universal_1(self):
+        function_name = 'universal_1'
+        self._execute_end_to_end_test(function_name)
+
+    def test_universal_2(self):
+        function_name = 'universal_2'
+        self._execute_end_to_end_test(function_name)
+
+    def test_universal_filter_1(self):
+        function_name = 'universal_filter_1'
+        self._execute_end_to_end_test(function_name)
+
+    def test_universal_nested_1(self):
+        function_name = 'universal_nested_1'
+        self._execute_end_to_end_test(function_name)
+
+    def test_universal_nested_link_1(self):
+        function_name = 'universal_nested_link_1'
+        self._execute_end_to_end_test(function_name)
+
+    def test_universal_nested_link_2(self):
+        function_name = 'universal_nested_link_2'
+        self._execute_end_to_end_test(function_name)
+
+    def test_not_in(self):
+        function_name = 'not_in'
+        self._execute_end_to_end_test(function_name)
+
+    def test_filter_index(self):
+        function_name = 'filter_index'
+        self._execute_end_to_end_test(function_name)
+
+    def test_nested_filter_index(self):
+        function_name = 'nested_filter_index'
+        self._execute_end_to_end_test(function_name)
+
+    def _execute_failing_end_to_end_test(self, function_name):
+        function = getattr(sets_functions, function_name)
+        strategy_factory = StrategyFactory(function)
+        self.assertRaises(NotImplementedError, strategy_factory.generate_composite_strategy)
+
+    def _execute_end_to_end_test(self, function_name):
+        with open(f'{self._folder_expected_output}{function_name}.txt') as file:
+            expected_output = textwrap.dedent(file.read())
+        function = getattr(sets_functions, function_name)
         strategy_factory = StrategyFactory(function)
         actual_output = textwrap.dedent(strategy_factory.generate_composite_strategy())
         self.assertEqual(expected_output, actual_output)
@@ -142,6 +224,10 @@ class RegexStrategyGeneration(unittest.TestCase):
 
     def test_re_match(self) -> None:
         function_name = 'base_re_match'
+        self._execute_end_to_end_test(function_name)
+
+    def test_re_match_numeric(self) -> None:
+        function_name = 'base_re_match_numeric'
         self._execute_end_to_end_test(function_name)
 
     def test_re_match_compiled(self) -> None:
@@ -277,6 +363,33 @@ class DictionariesStrategyGeneration(unittest.TestCase):
         with open(f'{self._folder_expected_output}{function_name}.txt') as file:
             expected_output = textwrap.dedent(file.read())
         function = getattr(dictionaries_functions, function_name)
+        strategy_factory = StrategyFactory(function)
+        actual_output = textwrap.dedent(strategy_factory.generate_composite_strategy())
+        self.assertEqual(expected_output, actual_output)
+
+
+class CustomTypesStrategyGeneration(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls._folder_expected_output = "expected_output/custom_types/"
+
+    def test_add_normal_class(self) -> None:
+        function_name = 'add_normal_class'
+        self._execute_end_to_end_test(function_name)
+
+    def test_add_dataclass_class(self) -> None:
+        function_name = 'add_dataclass_class'
+        self._execute_end_to_end_test(function_name)
+
+    def test_add_dbc_class(self) -> None:
+        function_name = 'add_dbc_class'
+        self._execute_end_to_end_test(function_name)
+
+    def _execute_end_to_end_test(self, function_name):
+        with open(f'{self._folder_expected_output}{function_name}.txt') as file:
+            expected_output = textwrap.dedent(file.read())
+        function = getattr(custom_types_functions, function_name)
         strategy_factory = StrategyFactory(function)
         actual_output = textwrap.dedent(strategy_factory.generate_composite_strategy())
         self.assertEqual(expected_output, actual_output)

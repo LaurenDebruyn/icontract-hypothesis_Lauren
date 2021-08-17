@@ -1,7 +1,7 @@
 import ast
 import unittest
 
-from icontract_hypothesis_Lauren.generate_symbol_table import Property, represent_property, increment_property, \
+from icontract_hypothesis_Lauren.generate_symbol_table import Property, property_to_string, increment_property, \
     decrement_property, PropertyArgument, represent_property_as_lambdas
 
 
@@ -18,7 +18,7 @@ class PropertiesRepresentationTest(unittest.TestCase):
             is_routine=False,
             var_is_caller=False
         )
-        self.assertEqual(expected_output, represent_property(prop))
+        self.assertEqual(expected_output, property_to_string(prop))
 
     def test_2(self) -> None:
         expected_output = "sorted(lst) >= lst"
@@ -31,7 +31,7 @@ class PropertiesRepresentationTest(unittest.TestCase):
             is_routine=False,
             var_is_caller=False
         )
-        self.assertEqual(expected_output, represent_property(prop))
+        self.assertEqual(expected_output, property_to_string(prop))
 
     def test_3(self) -> None:
         expected_output = "x >= (5)"
@@ -44,7 +44,7 @@ class PropertiesRepresentationTest(unittest.TestCase):
             is_routine=False,
             var_is_caller=False
         )
-        self.assertEqual(expected_output, represent_property(prop))
+        self.assertEqual(expected_output, property_to_string(prop))
 
     def test_4(self) -> None:
         expected_output = "s.isnumeric()"
@@ -57,7 +57,7 @@ class PropertiesRepresentationTest(unittest.TestCase):
             is_routine=True,
             var_is_caller=True
         )
-        self.assertEqual(expected_output, represent_property(prop))
+        self.assertEqual(expected_output, property_to_string(prop))
 
     def test_5(self) -> None:
         expected_output = "re.match(r'abc', s)"
@@ -70,7 +70,7 @@ class PropertiesRepresentationTest(unittest.TestCase):
             is_routine=True,
             var_is_caller=False
         )
-        self.assertEqual(expected_output, represent_property(prop))
+        self.assertEqual(expected_output, property_to_string(prop))
 
     def test_6(self) -> None:
         expected_output = "s.startswith(r'abc')"
@@ -83,7 +83,7 @@ class PropertiesRepresentationTest(unittest.TestCase):
             is_routine=True,
             var_is_caller=True
         )
-        self.assertEqual(expected_output, represent_property(prop))
+        self.assertEqual(expected_output, property_to_string(prop))
 
 
 class PropertiesIncrementDecrementTest(unittest.TestCase):
@@ -102,7 +102,7 @@ class PropertiesIncrementDecrementTest(unittest.TestCase):
 
         expected_output_incremented = "({(6,)}, set())"
         prop_input_incremented = increment_property(prop_input)
-        self.assertEqual(expected_output_incremented, represent_property(prop_input_incremented))
+        self.assertEqual(expected_output_incremented, property_to_string(prop_input_incremented))
 
     def test_2(self) -> None:
         test_input = "x >= 5"
@@ -118,7 +118,7 @@ class PropertiesIncrementDecrementTest(unittest.TestCase):
 
         expected_output_decremented = "({(4,)}, set())"
         prop_input_decremented = decrement_property(prop_input)
-        self.assertEqual(expected_output_decremented, represent_property(prop_input_decremented))
+        self.assertEqual(expected_output_decremented, property_to_string(prop_input_decremented))
 
 
 class PropertyAsLambdas(unittest.TestCase):

@@ -44,3 +44,8 @@ def base_contains(s: str):
 @require(lambda s: s.startswith('abc') and s.endswith('xyz'))
 def base_startswith_endswith(s: str):
     pass
+
+
+@require(lambda s: re.match(r'123', s))
+def base_re_match_numeric(s: str):
+    pass

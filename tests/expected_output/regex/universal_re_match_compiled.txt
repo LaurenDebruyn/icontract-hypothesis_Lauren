@@ -2,7 +2,7 @@
 def strategy_universal_re_match_compiled(draw) -> Tuple[List[str]]:
     s = draw(
         hypothesis.strategies.lists(
-            elements=hypothesis.strategies.from_regex(regex=r".*", fullmatch=True)
+            elements=hypothesis.strategies.from_regex(regex=r".*")
         )
     )
     return s

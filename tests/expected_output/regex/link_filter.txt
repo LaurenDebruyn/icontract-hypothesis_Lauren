@@ -1,8 +1,6 @@
 @hypothesis.strategies.composite
 def strategy_link_filter(draw) -> Tuple[str]:
     s = draw(
-        hypothesis.strategies.from_regex(regex=r"test", fullmatch=True).filter(
-            lambda s: len(s) > 2
-        )
+        hypothesis.strategies.from_regex(regex=r"test").filter(lambda s: len(s) > 2)
     )
     return s

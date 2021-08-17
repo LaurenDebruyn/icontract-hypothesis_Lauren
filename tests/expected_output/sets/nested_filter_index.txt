@@ -1,0 +1,10 @@
+@hypothesis.strategies.composite
+def strategy_nested_filter_index(draw) -> Tuple[Set[Set[int]]]:
+    a_set = draw(
+        hypothesis.strategies.sets(
+            elements=hypothesis.strategies.sets(
+                elements=hypothesis.strategies.integers()
+            )
+        ).filter(lambda a_set: len(a_set[0]) > 0)
+    )
+    return a_set

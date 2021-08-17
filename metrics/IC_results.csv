@@ -1,0 +1,247 @@
+module,function_name,runs,assume_free,filter_free,nb_samples,failed_health_check,violation_error,exceptions
+python_by_contract_corpus.ethz_eprog_2019.exercise_02.problem_02,draw,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_02.problem_03,draw,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_02.problem_05_01,draw,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_02.problem_05_02,draw,True,True,False,16,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_03.problem_01,compute,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_03.problem_02,repr_binary,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_03.problem_03,gcd,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_03.problem_04,decode,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_03.problem_04,encode,True,True,True,16,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_04.problem_01,find,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_04.problem_01,naive_is_prime,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_04.problem_01,sieve,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_04.problem_02,approximate_sqrt,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_04.problem_03,digits_to_number,True,True,False,28,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_04.problem_03,find_summands,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_04.problem_03,number_to_digits,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_05.problem_03,bin_index,False,False,False,1,True,False,"Data generation is extremely slow: Only produced 1 valid examples in 2.35 seconds (1 invalid ones and 0 exceeded maximum size). Try decreasing size of the data you're generating (with e.g.max_size or max_leaves parameters).
+See https://hypothesis.readthedocs.io/en/latest/healthchecks.html for more information about this. If you want to disable just this health check, add HealthCheck.too_slow to the suppress_health_check settings for this test."
+python_by_contract_corpus.ethz_eprog_2019.exercise_05.problem_03,cast,False,False,False,0,False,False,"<class 'TypeError'> :     No search strategy could be inferred for the function: <function cast at 0x7fa2467ddc10>; the following arguments are missing the type annotations: ['typ', 'val'];
+
+sorted typed_args was [], sorted parameter_set was ['typ', 'val']"
+python_by_contract_corpus.ethz_eprog_2019.exercise_05.problem_03,compute_histogram,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_05.problem_03,compute_stats,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_05.problem_03,overload,False,False,False,0,False,False,"<class 'TypeError'> :     No search strategy could be inferred for the function: <function overload at 0x7fa24670bd30>; the following arguments are missing the type annotations: ['func'];
+
+sorted typed_args was [], sorted parameter_set was ['func']"
+python_by_contract_corpus.ethz_eprog_2019.exercise_05.problem_04,longest_booked_room,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_05.problem_04,most_booked_room,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_05.problem_04,room_with_most_revenue,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_05.problem_04,total_revenue,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_06.problem_01,time_in_swiss_german,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_06.problem_04,_values_except_node,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_06.problem_05,compute_angles,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_07.problem_02,same_order,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_07.problem_02,split,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_08.problem_01,matches,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_08.problem_01,stretch,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_08.problem_02,is_subsequence,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_08.problem_02,list_subsequences,False,False,False,11,True,False,"It looks like your strategy is filtering out a lot of data. Health check found 50 filtered examples but only 9 good ones. This will make your tests much slower, and also will probably distort the data generation quite a lot. You should adapt your strategy to filter less. This can also be caused by a low max_leaves parameter in recursive() calls
+See https://hypothesis.readthedocs.io/en/latest/healthchecks.html for more information about this. If you want to disable just this health check, add HealthCheck.filter_too_much to the suppress_health_check settings for this test."
+python_by_contract_corpus.ethz_eprog_2019.exercise_08.problem_03,cast,False,False,False,0,False,False,"<class 'TypeError'> :     No search strategy could be inferred for the function: <function cast at 0x7fa246254040>; the following arguments are missing the type annotations: ['typ', 'val'];
+
+sorted typed_args was [], sorted parameter_set was ['typ', 'val']"
+python_by_contract_corpus.ethz_eprog_2019.exercise_08.problem_03,simulate,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_08.problem_05,list_next_positions,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_08.problem_05,simulate,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_09.problem_03,compile_flight_re,True,True,True,1,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_09.problem_03,compute_totals,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_09.problem_03,parse,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_09.problem_03,parse_block,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_11.problem_01,cast,False,False,False,0,False,False,"<class 'TypeError'> :     No search strategy could be inferred for the function: <function cast at 0x7fa2463ec820>; the following arguments are missing the type annotations: ['typ', 'val'];
+
+sorted typed_args was [], sorted parameter_set was ['typ', 'val']"
+python_by_contract_corpus.ethz_eprog_2019.exercise_11.problem_01,critical,True,True,False,24,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_11.problem_01,parse,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_11.problem_01,top,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_11.problem_02,_parse_atom,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_11.problem_02,_parse_expr,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_11.problem_02,_unparse,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_11.problem_02,cast,False,False,False,0,False,False,"<class 'TypeError'> :     No search strategy could be inferred for the function: <function cast at 0x7fa2458f6430>; the following arguments are missing the type annotations: ['typ', 'val'];
+
+sorted typed_args was [], sorted parameter_set was ['typ', 'val']"
+python_by_contract_corpus.ethz_eprog_2019.exercise_11.problem_02,collect_variables,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_11.problem_02,evaluate,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_11.problem_02,overload,False,False,False,0,False,False,"<class 'TypeError'> :     No search strategy could be inferred for the function: <function overload at 0x7fa246678550>; the following arguments are missing the type annotations: ['func'];
+
+sorted typed_args was [], sorted parameter_set was ['func']"
+python_by_contract_corpus.ethz_eprog_2019.exercise_11.problem_02,parse_tokens,False,False,False,2,True,False,"It looks like your strategy is filtering out a lot of data. Health check found 50 filtered examples but only 1 good ones. This will make your tests much slower, and also will probably distort the data generation quite a lot. You should adapt your strategy to filter less. This can also be caused by a low max_leaves parameter in recursive() calls
+See https://hypothesis.readthedocs.io/en/latest/healthchecks.html for more information about this. If you want to disable just this health check, add HealthCheck.filter_too_much to the suppress_health_check settings for this test."
+python_by_contract_corpus.ethz_eprog_2019.exercise_11.problem_02,tokenize,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_11.problem_02,tokens_to_text,False,False,False,2,True,False,"It looks like your strategy is filtering out a lot of data. Health check found 50 filtered examples but only 1 good ones. This will make your tests much slower, and also will probably distort the data generation quite a lot. You should adapt your strategy to filter less. This can also be caused by a low max_leaves parameter in recursive() calls
+See https://hypothesis.readthedocs.io/en/latest/healthchecks.html for more information about this. If you want to disable just this health check, add HealthCheck.filter_too_much to the suppress_health_check settings for this test."
+python_by_contract_corpus.ethz_eprog_2019.exercise_11.problem_02,unparse,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_01,_parse_atom,False,False,False,0,True,False,"It looks like your strategy is filtering out a lot of data. Health check found 50 filtered examples but only 0 good ones. This will make your tests much slower, and also will probably distort the data generation quite a lot. You should adapt your strategy to filter less. This can also be caused by a low max_leaves parameter in recursive() calls
+See https://hypothesis.readthedocs.io/en/latest/healthchecks.html for more information about this. If you want to disable just this health check, add HealthCheck.filter_too_much to the suppress_health_check settings for this test."
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_01,_parse_expr,False,False,False,0,True,False,"It looks like your strategy is filtering out a lot of data. Health check found 50 filtered examples but only 0 good ones. This will make your tests much slower, and also will probably distort the data generation quite a lot. You should adapt your strategy to filter less. This can also be caused by a low max_leaves parameter in recursive() calls
+See https://hypothesis.readthedocs.io/en/latest/healthchecks.html for more information about this. If you want to disable just this health check, add HealthCheck.filter_too_much to the suppress_health_check settings for this test."
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_01,_parse_stmt,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_01,cast,False,False,False,0,False,False,"<class 'TypeError'> :     No search strategy could be inferred for the function: <function cast at 0x7fa245242040>; the following arguments are missing the type annotations: ['typ', 'val'];
+
+sorted typed_args was [], sorted parameter_set was ['typ', 'val']"
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_01,interpret,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_01,overload,False,False,False,0,False,False,"<class 'TypeError'> :     No search strategy could be inferred for the function: <function overload at 0x7fa2452baee0>; the following arguments are missing the type annotations: ['func'];
+
+sorted typed_args was [], sorted parameter_set was ['func']"
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_01,parse_program,False,False,False,1,True,False,"It looks like your strategy is filtering out a lot of data. Health check found 50 filtered examples but only 0 good ones. This will make your tests much slower, and also will probably distort the data generation quite a lot. You should adapt your strategy to filter less. This can also be caused by a low max_leaves parameter in recursive() calls
+See https://hypothesis.readthedocs.io/en/latest/healthchecks.html for more information about this. If you want to disable just this health check, add HealthCheck.filter_too_much to the suppress_health_check settings for this test."
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_01,tokenize,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_01,tokens_to_text,False,False,False,1,True,False,"It looks like your strategy is filtering out a lot of data. Health check found 50 filtered examples but only 0 good ones. This will make your tests much slower, and also will probably distort the data generation quite a lot. You should adapt your strategy to filter less. This can also be caused by a low max_leaves parameter in recursive() calls
+See https://hypothesis.readthedocs.io/en/latest/healthchecks.html for more information about this. If you want to disable just this health check, add HealthCheck.filter_too_much to the suppress_health_check settings for this test."
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_01,unparse,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_03,_execute_binary_operation,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_03,_execute_call,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_03,_execute_const,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_03,_execute_load,False,False,False,0,True,False,"Data generation is extremely slow: Only produced 0 valid examples in True9 seconds (20 invalid ones and 0 exceeded maximum size). Try decreasing size of the data you're generating (with e.g.max_size or max_leaves parameters).
+See https://hypothesis.readthedocs.io/en/latest/healthchecks.html for more information about this. If you want to disable just this health check, add HealthCheck.too_slow to the suppress_health_check settings for this test."
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_03,_execute_store,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_03,_execute_unary_operation,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_03,compare_against_interpret,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_03,compile_and_execute,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_03,compile_program,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_03,execute,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_04,cast,False,False,False,0,False,False,"<class 'TypeError'> :     No search strategy could be inferred for the function: <function cast at 0x7fa245253310>; the following arguments are missing the type annotations: ['typ', 'val'];
+
+sorted typed_args was [], sorted parameter_set was ['typ', 'val']"
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_04,find_top,True,True,False,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_04,tokenize,True,True,True,100,False,False,
+python_by_contract_corpus.ethz_eprog_2019.exercise_12.problem_04,tokens_to_words,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_10_adapter_array,cast,False,False,False,0,False,False,"<class 'TypeError'> :     No search strategy could be inferred for the function: <function cast at 0x7fa245700670>; the following arguments are missing the type annotations: ['typ', 'val'];
+
+sorted typed_args was [], sorted parameter_set was ['typ', 'val']"
+python_by_contract_corpus.aoc2020.day_10_adapter_array,compute_result,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_10_adapter_array,histogram_differences,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_10_adapter_array,parse,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_11_seating_system,apply,False,False,False,0,False,False,"<class 'TypeError'> :     File /home/lauren/Nextcloud/Documents/2020-2021/thesis/code/venv/lib/python3.8/site-packages/python_by_contract_corpus/aoc2020/day_11_seating_system.py, line 61 in Layout:
+The argument(s) of the contract condition have not been set: ['table']. Does the original function define them? Did you supply them in the call?"
+python_by_contract_corpus.aoc2020.day_11_seating_system,apply_until_stable,False,False,False,0,False,False,"<class 'TypeError'> :     File /home/lauren/Nextcloud/Documents/2020-2021/thesis/code/venv/lib/python3.8/site-packages/python_by_contract_corpus/aoc2020/day_11_seating_system.py, line 61 in Layout:
+The argument(s) of the contract condition have not been set: ['table']. Does the original function define them? Did you supply them in the call?"
+python_by_contract_corpus.aoc2020.day_11_seating_system,count_occupied,False,False,False,0,False,False,"<class 'TypeError'> :     File /home/lauren/Nextcloud/Documents/2020-2021/thesis/code/venv/lib/python3.8/site-packages/python_by_contract_corpus/aoc2020/day_11_seating_system.py, line 61 in Layout:
+The argument(s) of the contract condition have not been set: ['table']. Does the original function define them? Did you supply them in the call?"
+python_by_contract_corpus.aoc2020.day_11_seating_system,list_neighbourhood,True,True,False,62,False,False,
+python_by_contract_corpus.aoc2020.day_11_seating_system,parse_layout,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_11_seating_system,repr_layout,False,False,False,0,False,False,"<class 'TypeError'> :     File /home/lauren/Nextcloud/Documents/2020-2021/thesis/code/venv/lib/python3.8/site-packages/python_by_contract_corpus/aoc2020/day_11_seating_system.py, line 61 in Layout:
+The argument(s) of the contract condition have not been set: ['table']. Does the original function define them? Did you supply them in the call?"
+python_by_contract_corpus.aoc2020.day_12_rain_risk,parse_input,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_12_rain_risk,solve,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_12_rain_risk,update_position,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_13_shuttle_search,find_departure,False,False,False,0,True,False,"Data generation is extremely slow: Only produced 0 valid examples in 1.21 seconds (14 invalid ones and 0 exceeded maximum size). Try decreasing size of the data you're generating (with e.g.max_size or max_leaves parameters).
+See https://hypothesis.readthedocs.io/en/latest/healthchecks.html for more information about this. If you want to disable just this health check, add HealthCheck.too_slow to the suppress_health_check settings for this test."
+python_by_contract_corpus.aoc2020.day_13_shuttle_search,main,True,True,True,1,False,False,
+python_by_contract_corpus.aoc2020.day_13_shuttle_search,next_departure,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_13_shuttle_search,parse_input,False,False,False,0,True,False,"Data generation is extremely slow: Only produced 0 valid examples in True2 seconds (13 invalid ones and 0 exceeded maximum size). Try decreasing size of the data you're generating (with e.g.max_size or max_leaves parameters).
+See https://hypothesis.readthedocs.io/en/latest/healthchecks.html for more information about this. If you want to disable just this health check, add HealthCheck.too_slow to the suppress_health_check settings for this test."
+python_by_contract_corpus.aoc2020.day_14_docking_data,execute,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_14_docking_data,parse_lines,False,False,False,0,True,False,"Data generation is extremely slow: Only produced 0 valid examples in True3 seconds (26 invalid ones and 0 exceeded maximum size). Try decreasing size of the data you're generating (with e.g.max_size or max_leaves parameters).
+See https://hypothesis.readthedocs.io/en/latest/healthchecks.html for more information about this. If you want to disable just this health check, add HealthCheck.too_slow to the suppress_health_check settings for this test."
+python_by_contract_corpus.aoc2020.day_14_docking_data,parse_mask,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_14_docking_data,parse_write,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_14_docking_data,sum_memory,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_15_rambunctious_recitation,solve,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_16_ticket_translation,applies,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_16_ticket_translation,compute_error_rate,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_16_ticket_translation,invalid_fields,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_16_ticket_translation,list_all_invalid_values,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_16_ticket_translation,parse_nearby_tickets,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_16_ticket_translation,parse_rules,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_17_conway_cubes,apply,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_17_conway_cubes,are_neighbours,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_17_conway_cubes,cast,False,False,False,0,False,False,"<class 'TypeError'> :     No search strategy could be inferred for the function: <function cast at 0x7fa244a27dc0>; the following arguments are missing the type annotations: ['typ', 'val'];
+
+sorted typed_args was [], sorted parameter_set was ['typ', 'val']"
+python_by_contract_corpus.aoc2020.day_17_conway_cubes,count_active,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_17_conway_cubes,list_neighbourhood,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_17_conway_cubes,parse_initial,False,False,False,0,True,False,"Data generation is extremely slow: Only produced 0 valid examples in True3 seconds (27 invalid ones and 0 exceeded maximum size). Try decreasing size of the data you're generating (with e.g.max_size or max_leaves parameters).
+See https://hypothesis.readthedocs.io/en/latest/healthchecks.html for more information about this. If you want to disable just this health check, add HealthCheck.too_slow to the suppress_health_check settings for this test."
+python_by_contract_corpus.aoc2020.day_17_conway_cubes,repr_activity,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_18_operation_order,cast,False,False,False,0,False,False,"<class 'TypeError'> :     No search strategy could be inferred for the function: <function cast at 0x7fa245b10160>; the following arguments are missing the type annotations: ['typ', 'val'];
+
+sorted typed_args was [], sorted parameter_set was ['typ', 'val']"
+python_by_contract_corpus.aoc2020.day_18_operation_order,compute,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_18_operation_order,dataclass,False,False,False,0,False,False,<class 'NotImplementedError'> :     Inferring strategy of a function with positional-only arguments is not currently implemented in icontract-hypothesis. Please create an issue on GitHub if you need this feature: https://github.com/mristin/icontract-hypothesis/issues
+python_by_contract_corpus.aoc2020.day_18_operation_order,extract_expression,False,False,False,0,True,False,"It looks like your strategy is filtering out a lot of data. Health check found 50 filtered examples but only 0 good ones. This will make your tests much slower, and also will probably distort the data generation quite a lot. You should adapt your strategy to filter less. This can also be caused by a low max_leaves parameter in recursive() calls
+See https://hypothesis.readthedocs.io/en/latest/healthchecks.html for more information about this. If you want to disable just this health check, add HealthCheck.filter_too_much to the suppress_health_check settings for this test."
+python_by_contract_corpus.aoc2020.day_18_operation_order,parse,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_18_operation_order,serialize,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_19_monster_messages,count_matching_messages,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_19_monster_messages,interpret_rule_0,False,False,False,0,False,False,<class 'TypeError'> :     Node() takes no arguments
+python_by_contract_corpus.aoc2020.day_19_monster_messages,iterate,False,False,False,0,False,False,<class 'TypeError'> :     Node() takes no arguments
+python_by_contract_corpus.aoc2020.day_19_monster_messages,parse_rule,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_19_monster_messages,parse_rules,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_19_monster_messages,repr_rule_tree,False,False,False,0,False,False,<class 'TypeError'> :     Node() takes no arguments
+python_by_contract_corpus.aoc2020.day_1_report_repair,find_pair_with_sum,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_20_jurassic_jigsaw,cast,False,False,False,0,False,False,"<class 'TypeError'> :     No search strategy could be inferred for the function: <function cast at 0x7fa245b10af0>; the following arguments are missing the type annotations: ['typ', 'val'];
+
+sorted typed_args was [], sorted parameter_set was ['typ', 'val']"
+python_by_contract_corpus.aoc2020.day_20_jurassic_jigsaw,dataclass,False,False,False,0,False,False,<class 'NotImplementedError'> :     Inferring strategy of a function with positional-only arguments is not currently implemented in icontract-hypothesis. Please create an issue on GitHub if you need this feature: https://github.com/mristin/icontract-hypothesis/issues
+python_by_contract_corpus.aoc2020.day_20_jurassic_jigsaw,main,True,True,True,1,False,False,
+python_by_contract_corpus.aoc2020.day_20_jurassic_jigsaw,overload,False,False,False,0,False,False,"<class 'TypeError'> :     No search strategy could be inferred for the function: <function overload at 0x7fa244c4d160>; the following arguments are missing the type annotations: ['func'];
+
+sorted typed_args was [], sorted parameter_set was ['func']"
+python_by_contract_corpus.aoc2020.day_20_jurassic_jigsaw,parse_tile,False,False,False,0,True,False,"It looks like your strategy is filtering out a lot of data. Health check found 50 filtered examples but only 0 good ones. This will make your tests much slower, and also will probably distort the data generation quite a lot. You should adapt your strategy to filter less. This can also be caused by a low max_leaves parameter in recursive() calls
+See https://hypothesis.readthedocs.io/en/latest/healthchecks.html for more information about this. If you want to disable just this health check, add HealthCheck.filter_too_much to the suppress_health_check settings for this test."
+python_by_contract_corpus.aoc2020.day_20_jurassic_jigsaw,parse_tiles,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_20_jurassic_jigsaw,place_remaining_tiles,False,False,False,0,False,False,<class 'TypeError'> :     __init__() got multiple values for argument 'self'
+python_by_contract_corpus.aoc2020.day_20_jurassic_jigsaw,place_tiles,False,False,False,27,False,False,<class 'IndexError'> :     string index out of range
+python_by_contract_corpus.aoc2020.day_20_jurassic_jigsaw,reverse_side,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_20_jurassic_jigsaw,transform_tile,False,False,False,0,False,False,<class 'IndexError'> :     string index out of range
+python_by_contract_corpus.aoc2020.day_21_allergen_assessment,cast,False,False,False,0,False,False,"<class 'TypeError'> :     No search strategy could be inferred for the function: <function cast at 0x7fa2443c3550>; the following arguments are missing the type annotations: ['typ', 'val'];
+
+sorted typed_args was [], sorted parameter_set was ['typ', 'val']"
+python_by_contract_corpus.aoc2020.day_21_allergen_assessment,find_non_allergenic_ingredients,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_21_allergen_assessment,parse_ingredient_line,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_21_allergen_assessment,serialize_entry,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_21_allergen_assessment,solve,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_22_crab_combat,compute_score,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_22_crab_combat,overload,False,False,False,0,False,False,"<class 'TypeError'> :     No search strategy could be inferred for the function: <function overload at 0x7fa245619820>; the following arguments are missing the type annotations: ['func'];
+
+sorted typed_args was [], sorted parameter_set was ['func']"
+python_by_contract_corpus.aoc2020.day_22_crab_combat,parse_lines,False,False,False,0,True,False,"It looks like your strategy is filtering out a lot of data. Health check found 50 filtered examples but only 0 good ones. This will make your tests much slower, and also will probably distort the data generation quite a lot. You should adapt your strategy to filter less. This can also be caused by a low max_leaves parameter in recursive() calls
+See https://hypothesis.readthedocs.io/en/latest/healthchecks.html for more information about this. If you want to disable just this health check, add HealthCheck.filter_too_much to the suppress_health_check settings for this test."
+python_by_contract_corpus.aoc2020.day_22_crab_combat,play,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_22_crab_combat,play_a_round,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_23_crab_cups,crab_move,False,False,False,0,False,False,<class 'hypothesis.errors.Unsatisfiable'> :     Unable to satisfy assumptions of hypothesis execute.
+python_by_contract_corpus.aoc2020.day_23_crab_cups,cup_circle_to_str,True,True,True,1,False,False,
+python_by_contract_corpus.aoc2020.day_23_crab_cups,initialize_cups,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_23_crab_cups,solve_100_steps,False,False,False,3,True,False,"It looks like your strategy is filtering out a lot of data. Health check found 50 filtered examples but only 3 good ones. This will make your tests much slower, and also will probably distort the data generation quite a lot. You should adapt your strategy to filter less. This can also be caused by a low max_leaves parameter in recursive() calls
+See https://hypothesis.readthedocs.io/en/latest/healthchecks.html for more information about this. If you want to disable just this health check, add HealthCheck.filter_too_much to the suppress_health_check settings for this test."
+python_by_contract_corpus.aoc2020.day_24_lobby_layout,cell_as_tuple,True,True,False,13,False,False,
+python_by_contract_corpus.aoc2020.day_24_lobby_layout,count_flips,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_24_lobby_layout,follow_directions,True,True,False,11,False,False,
+python_by_contract_corpus.aoc2020.day_24_lobby_layout,next_cell,True,True,False,13,False,False,
+python_by_contract_corpus.aoc2020.day_24_lobby_layout,parse_line,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_24_lobby_layout,stringify_directions,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_25_combo_breaker,deduce_encryption_key,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_25_combo_breaker,deduce_loop_size,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_25_combo_breaker,transform,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_2_password_philosophy,verify,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_2_password_philosophy,verify_line,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_3_toboggan_trajectory,cast,False,False,False,0,False,False,"<class 'TypeError'> :     No search strategy could be inferred for the function: <function cast at 0x7fa2462f0160>; the following arguments are missing the type annotations: ['typ', 'val'];
+
+sorted typed_args was [], sorted parameter_set was ['typ', 'val']"
+python_by_contract_corpus.aoc2020.day_3_toboggan_trajectory,count_trees,False,False,False,0,True,False,"It looks like your strategy is filtering out a lot of data. Health check found 50 filtered examples but only 0 good ones. This will make your tests much slower, and also will probably distort the data generation quite a lot. You should adapt your strategy to filter less. This can also be caused by a low max_leaves parameter in recursive() calls
+See https://hypothesis.readthedocs.io/en/latest/healthchecks.html for more information about this. If you want to disable just this health check, add HealthCheck.filter_too_much to the suppress_health_check settings for this test."
+python_by_contract_corpus.aoc2020.day_3_toboggan_trajectory,parse_input,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_4_passport_processing,blank_line_split,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_4_passport_processing,count_valid,False,False,False,1,True,False,"It looks like your strategy is filtering out a lot of data. Health check found 50 filtered examples but only 1 good ones. This will make your tests much slower, and also will probably distort the data generation quite a lot. You should adapt your strategy to filter less. This can also be caused by a low max_leaves parameter in recursive() calls
+See https://hypothesis.readthedocs.io/en/latest/healthchecks.html for more information about this. If you want to disable just this health check, add HealthCheck.filter_too_much to the suppress_health_check settings for this test."
+python_by_contract_corpus.aoc2020.day_4_passport_processing,is_valid,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_4_passport_processing,parse_passport_entries,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_5_binary_boarding,apply,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_5_binary_boarding,determine_column,True,True,True,8,False,False,
+python_by_contract_corpus.aoc2020.day_5_binary_boarding,determine_id,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_5_binary_boarding,determine_row,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_5_binary_boarding,determine_row_and_column,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_6_custom_customs,solve,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_7_handy_haversacks,containers,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_7_handy_haversacks,count_containers,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_7_handy_haversacks,directly_contains,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_7_handy_haversacks,main,True,True,True,1,False,False,
+python_by_contract_corpus.aoc2020.day_7_handy_haversacks,parse_bagexpr,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_7_handy_haversacks,parse_rule,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_7_handy_haversacks,parse_rules,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_8_handheld_halting,execute_instructions,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_8_handheld_halting,parse,True,True,False,100,False,False,
+python_by_contract_corpus.aoc2020.day_8_handheld_halting,parse_line,True,True,True,100,False,False,
+python_by_contract_corpus.aoc2020.day_9_encoding_error,solve,True,True,False,100,False,False,

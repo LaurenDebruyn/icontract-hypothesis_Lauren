@@ -2,9 +2,7 @@
 def strategy_universal_re_match(draw) -> Tuple[List[str]]:
     lst = draw(
         hypothesis.strategies.lists(
-            elements=hypothesis.strategies.from_regex(
-                regex=r"(+|-)?[1-9][0-9]*", fullmatch=True
-            )
+            elements=hypothesis.strategies.from_regex(regex=r"(+|-)?[1-9][0-9]*")
         )
     )
     return lst

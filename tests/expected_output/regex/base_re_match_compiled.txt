@@ -1,4 +1,4 @@
 @hypothesis.strategies.composite
 def strategy_base_re_match_compiled(draw) -> Tuple[str]:
-    s = draw(hypothesis.strategies.from_regex(regex=r".*", fullmatch=True))
+    s = draw(hypothesis.strategies.from_regex(regex=r".*"))
     return s

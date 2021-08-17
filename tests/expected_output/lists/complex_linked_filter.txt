@@ -1,0 +1,8 @@
+@hypothesis.strategies.composite
+def strategy_complex_linked_filter(draw) -> Tuple[List[int]]:
+    lst = draw(
+        hypothesis.strategies.lists(
+            elements=hypothesis.strategies.integers(), min_size=1
+        ).filter(lambda lst: all(item >= lst[0] for item in lst))
+    )
+    return lst

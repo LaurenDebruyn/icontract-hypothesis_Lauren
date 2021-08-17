@@ -1,0 +1,8 @@
+@hypothesis.strategies.composite
+def strategy_filter_index(draw) -> Tuple[List[str]]:
+    lst = draw(
+        hypothesis.strategies.lists(elements=hypothesis.strategies.text()).filter(
+            lambda lst: lst[0] == "abc"
+        )
+    )
+    return lst

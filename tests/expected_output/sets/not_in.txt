@@ -1,0 +1,5 @@
+@hypothesis.strategies.composite
+def strategy_not_in(draw) -> Tuple[Set[int]]:
+    a_set = draw(hypothesis.strategies.sets(elements=hypothesis.strategies.integers()))
+    hypothesis.assume((0 not in a_set))
+    return a_set

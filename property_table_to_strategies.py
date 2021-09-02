@@ -9,8 +9,8 @@ from typing import List, Union, Dict, Tuple, Set, Sequence, Callable, Hashable, 
 import sys
 from hypothesis.strategies._internal.strategies import Ex
 
-from icontract_hypothesis_Lauren import generate_symbol_table
-from icontract_hypothesis_Lauren.generate_symbol_table import Lambda, property_to_lambdas, \
+from icontract_hypothesis_Lauren import generate_property_table
+from icontract_hypothesis_Lauren.generate_property_table import Lambda, property_to_lambdas, \
     represent_property_arguments, Property, PropertyArgument
 
 
@@ -178,9 +178,9 @@ class SymbolicListStrategy(SymbolicStrategy):
         if self.max_size:
             max_size_str = ", ".join(self.max_size)
             if len(self.max_size) == 1:
-                result.append(f', min_size={max_size_str}')
+                result.append(f', max_size={max_size_str}')
             else:
-                result.append(f', min_size=max({max_size_str})')
+                result.append(f', max_size=max({max_size_str})')
         if self.unique_by:
             raise NotImplementedError
         if self.unique:
@@ -212,9 +212,9 @@ class SymbolicDictionaryStrategy(SymbolicStrategy):
         if self.max_size:
             max_size_str = ", ".join(self.max_size)
             if len(self.max_size) == 1:
-                result.append(f', min_size={max_size_str}')
+                result.append(f', max_size={max_size_str}')
             else:
-                result.append(f', min_size=max({max_size_str})')
+                result.append(f', max_size=max({max_size_str})')
 
         result.append(')')
 
@@ -241,9 +241,9 @@ class SymbolicSetStrategy(SymbolicStrategy):
         if self.max_size:
             max_size_str = ", ".join(self.max_size)
             if len(self.max_size) == 1:
-                result.append(f', min_size={max_size_str}')
+                result.append(f', max_size={max_size_str}')
             else:
-                result.append(f', min_size=max({max_size_str})')
+                result.append(f', max_size=max({max_size_str})')
 
         result.append(')')
 
@@ -289,12 +289,12 @@ class SymbolicNoneStrategy(SymbolicStrategy):
 ##
 
 
-def generate_strategies(table: generate_symbol_table.Table) -> Dict[str, SymbolicStrategy]:
+def generate_strategies(table: generate_property_table.Table) -> Dict[str, SymbolicStrategy]:
     # variable identifier ->  strategy how to generate the identifier
     strategies: Dict[str, SymbolicStrategy] = dict()
 
     for row in table.get_rows():
-        if row.kind == generate_symbol_table.Kind.BASE:
+        if row.kind == generate_property_table.Kind.BASE:
             strategies[row.var_id] = _infer_strategy(row, table)
     return strategies
 
@@ -344,7 +344,7 @@ def _decrement_property(prop: Property) -> Property:
                     var_is_caller=prop.var_is_caller)
 
 
-def _infer_strategy(row: generate_symbol_table.Row, table: generate_symbol_table.Table) -> SymbolicStrategy:
+def _infer_strategy(row: generate_property_table.Row, table: generate_property_table.Table) -> SymbolicStrategy:
     if isinstance(row.type, int) or row.type == int:
         return _infer_int_strategy(row, table)
     elif isinstance(row.type, float) or row.type == float:
@@ -375,8 +375,8 @@ def _infer_strategy(row: generate_symbol_table.Row, table: generate_symbol_table
 ##
 
 
-def _infer_int_strategy(row: generate_symbol_table.Row,
-                        table: generate_symbol_table.Table) -> SymbolicIntegerStrategy:
+def _infer_int_strategy(row: generate_property_table.Row,
+                        table: generate_property_table.Table) -> SymbolicIntegerStrategy:
     max_value: List[Property] = []
     min_value: List[Property] = []
     filters: List[Lambda] = []
@@ -408,18 +408,18 @@ def _infer_int_strategy(row: generate_symbol_table.Row,
         else:
             filters.extend(property_to_lambdas(row_property))
 
-    if min_value_contains_free_variables or max_value_contains_free_variables:
-        # turn min values into filters
-        for prop in min_value:
-            filters.extend(property_to_lambdas(prop))
-        min_value = []
+    # if min_value_contains_free_variables or max_value_contains_free_variables:
+    #     # turn min values into filters
+    #     for prop in min_value:
+    #         filters.extend(property_to_lambdas(prop))
+    #     min_value = []
 
 
     min_value_deserialized: List[str] = list(chain(*[represent_property_arguments(prop) for prop in min_value]))
     max_value_deserialized: List[str] = list(chain(*[represent_property_arguments(prop) for prop in max_value]))
 
     for link_row in table.get_rows():
-        if link_row.parent == row.var_id and link_row.kind == generate_symbol_table.Kind.LINK:
+        if link_row.parent == row.var_id and link_row.kind == generate_property_table.Kind.LINK:
             link_strategy = _infer_int_strategy(link_row, table)
             min_value_deserialized.extend(link_strategy.min_value)
             max_value_deserialized.extend(link_strategy.max_value)
@@ -431,8 +431,8 @@ def _infer_int_strategy(row: generate_symbol_table.Row,
                                    filters=filters)
 
 
-def _infer_float_strategy(row: generate_symbol_table.Row,
-                        table: generate_symbol_table.Table) -> SymbolicFloatStrategy:
+def _infer_float_strategy(row: generate_property_table.Row,
+                        table: generate_property_table.Table) -> SymbolicFloatStrategy:
     max_value: List[Property] = []
     min_value: List[Property] = []
     filters: List[Lambda] = []
@@ -473,7 +473,7 @@ def _infer_float_strategy(row: generate_symbol_table.Row,
     max_value_deserialized: List[str] = list(chain(*[represent_property_arguments(prop) for prop in max_value]))
 
     for link_row in table.get_rows():
-        if link_row.parent == row.var_id and link_row.kind == generate_symbol_table.Kind.LINK:
+        if link_row.parent == row.var_id and link_row.kind == generate_property_table.Kind.LINK:
             link_strategy = _infer_int_strategy(link_row, table)
             min_value_deserialized.extend(link_strategy.min_value)
             max_value_deserialized.extend(link_strategy.max_value)
@@ -489,8 +489,8 @@ def _infer_float_strategy(row: generate_symbol_table.Row,
 # Strings
 ##
 
-def _infer_text_strategy(row: generate_symbol_table.Row,
-                         table: generate_symbol_table.Table) -> SymbolicTextStrategy:
+def _infer_text_strategy(row: generate_property_table.Row,
+                         table: generate_property_table.Table) -> SymbolicTextStrategy:
     blacklist_categories: List[Set[str]] = []
     whitelist_categories: List[Set[str]] = []
     min_size: List[Union[int, str]] = []
@@ -514,7 +514,7 @@ def _infer_text_strategy(row: generate_symbol_table.Row,
             whitelist_categories.append({'Lu'})
         elif property_identifier == 'isdecimal':
             whitelist_categories.append({'Nd'})
-        elif row.kind == generate_symbol_table.Kind.LINK:
+        elif row.kind == generate_property_table.Kind.LINK:
             link_property = row.var_id[:-(len(row.parent) + 2)]
             if link_property == 'len':
                 if property_identifier == '<':
@@ -538,7 +538,7 @@ def _infer_text_strategy(row: generate_symbol_table.Row,
             filters.extend(property_to_lambdas(row_property))
 
     for link_row in table.get_rows():
-        if link_row.parent == row.var_id and link_row.kind == generate_symbol_table.Kind.LINK:
+        if link_row.parent == row.var_id and link_row.kind == generate_property_table.Kind.LINK:
             link_strategy = _infer_text_strategy(link_row, table)
             blacklist_categories.extend(link_strategy.blacklist_categories)
             whitelist_categories.extend(link_strategy.whitelist_categories)
@@ -554,8 +554,8 @@ def _infer_text_strategy(row: generate_symbol_table.Row,
                                 filters=filters)
 
 
-def _infer_from_regex_strategy(row: generate_symbol_table.Row,
-                               table: generate_symbol_table.Table) -> SymbolicFromRegexStrategy:
+def _infer_from_regex_strategy(row: generate_property_table.Row,
+                               table: generate_property_table.Table) -> SymbolicFromRegexStrategy:
     regexps: List[str] = []
     full_match: bool = False
     filters: List[Lambda] = []
@@ -603,7 +603,7 @@ def _infer_from_regex_strategy(row: generate_symbol_table.Row,
             stripped_args = [arg.strip('\"') for arg in represent_property_arguments(row_property)]
             regexps.extend([f'\".*{arg}$\"' for arg in stripped_args])
             full_match = True
-        elif row.kind == generate_symbol_table.Kind.LINK:
+        elif row.kind == generate_property_table.Kind.LINK:
             link_property = row.var_id[:-(len(row.parent) + 2)]
             if link_property == 'len':
                 if property_identifier == '<':
@@ -622,7 +622,7 @@ def _infer_from_regex_strategy(row: generate_symbol_table.Row,
             filters.extend(property_to_lambdas(row_property))
 
     for link_row in table.get_rows():
-        if link_row.parent == row.var_id and link_row.kind == generate_symbol_table.Kind.LINK:
+        if link_row.parent == row.var_id and link_row.kind == generate_property_table.Kind.LINK:
             link_strategy = _infer_from_regex_strategy(link_row, table)
             regexps.extend(link_strategy.regexps)
             full_match = full_match or link_strategy.full_match
@@ -639,7 +639,7 @@ def _infer_from_regex_strategy(row: generate_symbol_table.Row,
 ##
 
 
-def _infer_list_strategy(row: generate_symbol_table.Row, table: generate_symbol_table.Table) -> SymbolicListStrategy:
+def _infer_list_strategy(row: generate_property_table.Row, table: generate_property_table.Table) -> SymbolicListStrategy:
     elements: Optional[SymbolicStrategy] = None
     min_size: List[str] = []
     max_size: List[str] = []
@@ -655,7 +655,7 @@ def _infer_list_strategy(row: generate_symbol_table.Row, table: generate_symbol_
 
     for other_row in table.get_rows():
         if other_row.parent == row.var_id:
-            if other_row.kind == generate_symbol_table.Kind.LINK:
+            if other_row.kind == generate_property_table.Kind.LINK:
                 link_property = other_row.var_id[:-(len(other_row.parent) + 2)]
 
                 for property_identifier, row_property in other_row.properties.items():
@@ -681,7 +681,7 @@ def _infer_list_strategy(row: generate_symbol_table.Row, table: generate_symbol_
                             filters.extend(property_to_lambdas(row_property))
                     else:
                         filters.extend(property_to_lambdas(row_property))
-            elif other_row.kind == generate_symbol_table.Kind.UNIVERSAL_QUANTIFIER:
+            elif other_row.kind == generate_property_table.Kind.UNIVERSAL_QUANTIFIER:
                 if row.var_id in {e for s in other_row.get_dependencies().values() for e in s}:
                     for row_property in other_row.properties.values():
                         lambdas = property_to_lambdas(row_property)
@@ -716,7 +716,7 @@ def _infer_list_strategy(row: generate_symbol_table.Row, table: generate_symbol_
                                 filters=filters)
 
 
-def _infer_dictionary_strategy(row: generate_symbol_table.Row, table: generate_symbol_table.Table) -> SymbolicDictionaryStrategy:
+def _infer_dictionary_strategy(row: generate_property_table.Row, table: generate_property_table.Table) -> SymbolicDictionaryStrategy:
     keys: Optional[SymbolicStrategy] = None
     values: Optional[SymbolicStrategy] = None
     min_size: List[str] = []
@@ -727,7 +727,7 @@ def _infer_dictionary_strategy(row: generate_symbol_table.Row, table: generate_s
         if row.var_id == other_row.var_id:
             pass
         elif other_row.parent == row.var_id:
-            if other_row.kind == generate_symbol_table.Kind.LINK:
+            if other_row.kind == generate_property_table.Kind.LINK:
                 link_property = other_row.var_id[:-(len(other_row.parent) + 2)]
 
                 for property_identifier, row_property in other_row.properties.items():
@@ -753,7 +753,7 @@ def _infer_dictionary_strategy(row: generate_symbol_table.Row, table: generate_s
                             filters.extend(property_to_lambdas(row_property))
                     else:
                         filters.extend(property_to_lambdas(row_property))
-            elif other_row.kind == generate_symbol_table.Kind.UNIVERSAL_QUANTIFIER:
+            elif other_row.kind == generate_property_table.Kind.UNIVERSAL_QUANTIFIER:
                 if row.var_id in {e for s in other_row.get_dependencies().values() for e in s}:
                     for row_property in other_row.properties.values():
                         lambdas = property_to_lambdas(row_property)
@@ -775,12 +775,12 @@ def _infer_dictionary_strategy(row: generate_symbol_table.Row, table: generate_s
             else:
                 raise NotImplementedError
         elif other_row.parent == f'{row.var_id}.keys()':
-            if other_row.kind == generate_symbol_table.Kind.UNIVERSAL_QUANTIFIER:
+            if other_row.kind == generate_property_table.Kind.UNIVERSAL_QUANTIFIER:
                 keys = _infer_strategy(other_row, table)
             else:
                 raise NotImplementedError
         elif other_row.parent == f'{row.var_id}.values()':
-            if other_row.kind == generate_symbol_table.Kind.UNIVERSAL_QUANTIFIER:
+            if other_row.kind == generate_property_table.Kind.UNIVERSAL_QUANTIFIER:
                 values = _infer_strategy(other_row, table)
             else:
                 raise NotImplementedError
@@ -801,7 +801,7 @@ def _infer_dictionary_strategy(row: generate_symbol_table.Row, table: generate_s
                                       filters=filters)
 
 
-def _infer_set_strategy(row: generate_symbol_table.Row, table: generate_symbol_table.Table) -> SymbolicSetStrategy:
+def _infer_set_strategy(row: generate_property_table.Row, table: generate_property_table.Table) -> SymbolicSetStrategy:
     elements: Optional[SymbolicStrategy] = None
     min_size: List[str] = []
     max_size: List[str] = []
@@ -809,7 +809,7 @@ def _infer_set_strategy(row: generate_symbol_table.Row, table: generate_symbol_t
 
     for other_row in table.get_rows():
         if other_row.parent == row.var_id:
-            if other_row.kind == generate_symbol_table.Kind.LINK:
+            if other_row.kind == generate_property_table.Kind.LINK:
                 link_property = other_row.var_id[:-(len(other_row.parent) + 2)]
 
                 for property_identifier, row_property in other_row.properties.items():
@@ -828,7 +828,7 @@ def _infer_set_strategy(row: generate_symbol_table.Row, table: generate_symbol_t
                             filters.extend(property_to_lambdas(row_property))
                     else:
                         filters.extend(property_to_lambdas(row_property))
-            elif other_row.kind == generate_symbol_table.Kind.UNIVERSAL_QUANTIFIER:
+            elif other_row.kind == generate_property_table.Kind.UNIVERSAL_QUANTIFIER:
                 elements = _infer_strategy(other_row, table)
             else:
                 raise NotImplementedError
@@ -844,7 +844,7 @@ def _infer_set_strategy(row: generate_symbol_table.Row, table: generate_symbol_t
                                filters=filters)
 
 
-def _infer_from_type_strategy(row: generate_symbol_table.Row, table: generate_symbol_table.Table) \
+def _infer_from_type_strategy(row: generate_property_table.Row, table: generate_property_table.Table) \
         -> SymbolicFromTypeStrategy:
     filters: List[Lambda] = []
 
@@ -856,7 +856,7 @@ def _infer_from_type_strategy(row: generate_symbol_table.Row, table: generate_sy
 
     for other_row in table.get_rows():
         if typing.get_origin(row.type) in [dict, collections.abc.Mapping] and \
-                other_row.kind == generate_symbol_table.Kind.UNIVERSAL_QUANTIFIER:
+                other_row.kind == generate_property_table.Kind.UNIVERSAL_QUANTIFIER:
             if row.var_id in {e for s in other_row.get_dependencies().values() for e in s}:
                 for row_property in other_row.properties.values():
                     lambdas = property_to_lambdas(row_property)
@@ -876,13 +876,13 @@ def _infer_from_type_strategy(row: generate_symbol_table.Row, table: generate_sy
                         filters_to_delete.append(f)
                 elements.filters = [f for f in elements.filters if f not in filters_to_delete]
         elif other_row.parent == row.var_id:
-            if other_row.kind == generate_symbol_table.Kind.LINK:
+            if other_row.kind == generate_property_table.Kind.LINK:
                 filters.extend([
                     lambda_property
                     for row_property in other_row.properties.values()
                     for lambda_property in property_to_lambdas(row_property)
                 ])
-            elif other_row.kind == generate_symbol_table.Kind.UNIVERSAL_QUANTIFIER:
+            elif other_row.kind == generate_property_table.Kind.UNIVERSAL_QUANTIFIER:
                 if row.var_id in {e for s in other_row.get_dependencies().values() for e in s}:
                     for row_property in other_row.properties.values():
                         lambdas = property_to_lambdas(row_property)
@@ -915,7 +915,7 @@ def _infer_from_type_strategy(row: generate_symbol_table.Row, table: generate_sy
     )
 
 
-def _infer_one_of_strategy(row: generate_symbol_table.Row, table: generate_symbol_table.Table) \
+def _infer_one_of_strategy(row: generate_property_table.Row, table: generate_property_table.Table) \
         -> SymbolicOneOfStrategy:
     filters: List[Lambda] = []
 
